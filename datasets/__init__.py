@@ -1,12 +1,19 @@
 from .detection import BaseDetectionDataset
 from .instance_seg import BaseInstanceDataset
-from .semantic_seg import BaseSemanticDataset, VOCSemanticDataset, TorchVOCSegmentation
+from .semantic_seg import BaseSemanticDataset, VOCSemanticDataset, TorchVOCSegmentation, TorchVOCTextSegmentation
 from .transforms import get_transforms
 from torchvision.datasets import VOCSegmentation
 
-segment_datasets = {'base_ins': BaseInstanceDataset, 'base_sem': BaseSemanticDataset,
-                    'voc_sem': VOCSemanticDataset, 'torch_voc_sem': TorchVOCSegmentation}
-det_dataset = {'base_det': BaseDetectionDataset, }
+segment_datasets = {
+    'base_ins': BaseInstanceDataset, 
+    'base_sem': BaseSemanticDataset,
+    'voc_sem': VOCSemanticDataset, 
+    'torch_voc_sem': TorchVOCSegmentation,
+    'torch_voc_text': TorchVOCTextSegmentation,
+}
+det_dataset = {
+    'base_det': BaseDetectionDataset, 
+}
 
 
 def get_dataset(cfg):

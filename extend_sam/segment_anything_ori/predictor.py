@@ -144,9 +144,9 @@ class SamPredictor:
             labels_torch = torch.as_tensor(point_labels, dtype=torch.int, device=self.device)
             coords_torch, labels_torch = coords_torch[None, :, :], labels_torch[None, :]
         if box is not None:
-            box = self.transform.apply_boxes(box, self.original_size)
+            box = self.transform.apply_boxes(box, self.original_size) # (-1, 4)
             box_torch = torch.as_tensor(box, dtype=torch.float, device=self.device)
-            box_torch = box_torch[None, :]
+            box_torch = box_torch[None, :] # (1, -1, 4)
         if mask_input is not None:
             mask_input_torch = torch.as_tensor(mask_input, dtype=torch.float, device=self.device)
             mask_input_torch = mask_input_torch[None, :, :, :]

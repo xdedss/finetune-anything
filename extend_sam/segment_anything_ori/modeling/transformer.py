@@ -151,6 +151,10 @@ class TwoWayAttentionBlock(nn.Module):
     def forward(
         self, queries: Tensor, keys: Tensor, query_pe: Tensor, key_pe: Tensor
     ) -> Tuple[Tensor, Tensor]:
+        # keys are image embeddings flattened
+        # queries are sparse embeddings
+        # print('qk, pe', queries.shape, keys.shape, query_pe.shape, key_pe.shape)
+        # xx
         # Self attention block
         if self.skip_first_layer_pe:
             queries = self.self_attn(q=queries, k=queries, v=queries)

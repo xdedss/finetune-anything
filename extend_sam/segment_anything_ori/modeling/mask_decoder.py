@@ -92,6 +92,8 @@ class MaskDecoder(nn.Module):
           torch.Tensor: batched predicted masks
           torch.Tensor: batched predictions of mask quality
         """
+        # print('mask_decoder.forward()', image_embeddings.shape, sparse_prompt_embeddings.shape, dense_prompt_embeddings.shape)
+        # xx
         masks, iou_pred = self.predict_masks(
             image_embeddings=image_embeddings,
             image_pe=image_pe,
@@ -122,15 +124,32 @@ class MaskDecoder(nn.Module):
         output_tokens = torch.cat([self.iou_token.weight, self.mask_tokens.weight], dim=0)
         output_tokens = output_tokens.unsqueeze(0).expand(sparse_prompt_embeddings.size(0), -1, -1)
         tokens = torch.cat((output_tokens, sparse_prompt_embeddings), dim=1)
+        
+        # print('tokens', tokens.shape)
 
         # Expand per-image data in batch direction to be per-mask
-        src = torch.repeat_interleave(image_embeddings, tokens.shape[0], dim=0)
-        src = src + dense_prompt_embeddings
-        pos_src = torch.repeat_interleave(image_pe, tokens.shape[0], dim=0)
+
+        if (image_embeddings.size(0) == 1):
+            # this is the default way to handle this, when we have one image and multiple sets of prompts
+            src = torch.repeat_interleave(image_embeddings, tokens.shape[0], dim=0)
+            src = src + dense_prompt_embeddings
+            pos_src = torch.repeat_interleave(image_pe, tokens.shape[0], dim=0)
+        else:
+            # sometimes we also want to have multiple images, each corresponding to one set of prompt
+            # then there is no need to repeat image
+            assert image_embeddings.size(0) == sparse_prompt_embeddings.size(0)
+            src = image_embeddings
+            pos_src = image_pe
+
         b, c, h, w = src.shape
+        
+        # print('src', src.shape)
 
         # Run the transformer
         hs, src = self.transformer(src, pos_src, tokens)
+        
+        # print('hs, src', hs.shape, src.shape) # hs comes from tokens
+        # xx
         iou_token_out = hs[:, 0, :]
         mask_tokens_out = hs[:, 1 : (1 + self.num_mask_tokens), :]
 

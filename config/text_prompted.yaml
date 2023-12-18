@@ -1,21 +1,20 @@
 train:
-  experiment_name: 'semantic_sam'
+  experiment_name: 'text_sam'
 
   # Model
   model:
-    sam_name: 'sem_sam'
+    sam_name: 'text_sam'
     params:
       # Fix the a part of parameters in SAM
       fix_img_en: True
       fix_prompt_en: True
       fix_mask_de: False
       ckpt_path: 'sam_ckpt/sam_vit_b_01ec64.pth'
-      class_num: 21 # 20 + 1
       model_type: 'vit_b'    # type should be in [vit_h, vit_b, vit_l, default]
 
   # Dataset
   dataset:
-    name: 'torch_voc_sem'
+    name: 'torch_voc_text'
     params:
       root: '/hdd0/lzr/'
       year: '2012'
@@ -33,11 +32,9 @@ train:
 
   # Losses
   losses:
-    ce:
+    bce:
       weight: 0.5
-      params:  # ~ means None type, the initial params of loss could be identified here
-        ignore_index: 255
-      label_one_hot: False
+      params:
 
   # Optimizer
   opt_params:
@@ -54,7 +51,7 @@ train:
   max_iter: 100000
   log_iter: 20
   eval_iter: 200
-  runner_name: 'sem_runner'
+  runner_name: 'text_runner'
   # Dataloader
   bs: 4 # 8
   num_workers: 2
@@ -68,7 +65,7 @@ train:
 val:
   # Dataset
   dataset:
-    name: 'torch_voc_sem'
+    name: 'torch_voc_text'
     params:
       root: '/hdd0/lzr/'
       year: '2012'

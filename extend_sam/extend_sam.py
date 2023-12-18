@@ -4,7 +4,7 @@ import torch.nn as nn
 from .segment_anything_ori import sam_model_registry
 from .image_encoder_adapter import BaseImgEncodeAdapter
 from .mask_decoder_adapter import BaseMaskDecoderAdapter, SemMaskDecoderAdapter
-from .prompt_encoder_adapter import BasePromptEncodeAdapter
+from .prompt_encoder_adapter import BasePromptEncodeAdapter, TextEncoderAdapter
 
 
 class BaseExtendSam(nn.Module):
@@ -46,3 +46,30 @@ class SemanticSam(BaseExtendSam):
         super().__init__(ckpt_path=ckpt_path, fix_img_en=fix_img_en, fix_prompt_en=fix_prompt_en,
                          fix_mask_de=fix_mask_de, model_type=model_type)
         self.mask_adapter = SemMaskDecoderAdapter(self.ori_sam, fix=fix_mask_de, class_num=class_num)
+
+
+class TextSam(BaseExtendSam):
+
+    def __init__(self, ckpt_path=None, fix_img_en=False, fix_prompt_en=False, fix_mask_de=False, model_type='vit_b'):
+        super().__init__(ckpt_path=ckpt_path, fix_img_en=fix_img_en, fix_prompt_en=fix_prompt_en,
+                         fix_mask_de=fix_mask_de, model_type=model_type)
+        self.prompt_adapter = TextEncoderAdapter(self.ori_sam, fix=fix_prompt_en)
+    
+    def forward(self, img, text_array):
+        ''' text_array: len=batch size '''
+
+        x = self.img_adapter(img)
+
+        sparse_embeddings, dense_embeddings = self.prompt_adapter(text_array)
+
+        multimask_output = False # only output 1 mask, for given text input
+        low_res_masks, iou_predictions = self.mask_adapter(
+            image_embeddings=x,
+            prompt_adapter=self.prompt_adapter,
+            sparse_embeddings=sparse_embeddings,
+            dense_embeddings=dense_embeddings,
+            multimask_output=multimask_output,
+        )
+        return low_res_masks, iou_predictions
+
+

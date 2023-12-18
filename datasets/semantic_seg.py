@@ -147,3 +147,44 @@ class TorchVOCSegmentation(VOCSegmentation):
 
         target = np.array(target)
         return img, target
+
+
+class TorchVOCTextSegmentation(VOCSegmentation):
+    def __init__(self, root, year='2012', image_set='train', download=False, transform=None, target_transform=None):
+        super().__init__(root=root, year=year, image_set=image_set, download=download,
+                                                   transform=transform, target_transform=target_transform)
+        self.class_names = ['background', 'aeroplane', 'bicycle', 'bird', 'boat', 'bottle',
+                            'bus', 'car', 'cat', 'chair', 'cow',
+                            'diningtable', 'dog', 'horse', 'motorbike', 'person',
+                            'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor']
+
+        self.rs = np.random.RandomState(42)
+
+    def __getitem__(self, index: int):
+        """
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: (image, target, selected_class_name) where target is the image segmentation.
+        """
+        img = Image.open(self.images[index]).convert('RGB')
+        target = Image.open(self.masks[index])
+
+        # only select class names that has value
+        unique_labels = set(np.unique(np.array(target)))
+        unique_labels.remove(255)
+        # print(unique_labels)
+        selected_class_idx = self.rs.choice(list(unique_labels))
+        selected_class_name = self.class_names[selected_class_idx]
+
+        if self.transforms is not None:
+            img, target = self.transforms(img, target)
+
+        target = (np.array(target) == selected_class_idx).astype(np.uint8)
+
+        # print(img.shape, target.shape, target.dtype)
+
+        # print(target.min(), target.max())
+        # xx
+        return img, target, selected_class_name
