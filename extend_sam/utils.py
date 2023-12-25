@@ -96,6 +96,80 @@ def print_and_save_log(message, path):
         f.write(message + '\n')
 
 
+class BinarymIoUOnline:
+    def __init__(self):
+        self.class_names = ['fg']
+        self.class_num = 1
+        self.clear()
+    
+    def get_data(self, pred_mask, gt_mask):
+        ''' expected pred_mask: 0 or 1, gt_mask: 0 or 1'''
+
+        P_list, T_list, TP_list = [], [], []
+        for i in range(self.class_num):
+            P_list.append(np.sum(pred_mask))
+            T_list.append(np.sum(gt_mask))
+            TP_list.append(np.sum(pred_mask * gt_mask))
+
+        return (P_list, T_list, TP_list)
+
+    def add_using_data(self, data):
+        P_list, T_list, TP_list = data
+        for i in range(self.class_num):
+            self.P[i] += P_list[i]
+            self.T[i] += T_list[i]
+            self.TP[i] += TP_list[i]
+
+    def add(self, pred_mask, gt_mask):
+        ''' expected pred_mask: 0 or 1, gt_mask: 0 or 1'''
+
+        for i in range(self.class_num):
+            self.P[i] += np.sum(pred_mask)
+            self.T[i] += np.sum(gt_mask)
+            self.TP[i] += np.sum(pred_mask * gt_mask)
+
+    def get(self, detail=False, clear=True):
+        IoU_dic = {}
+        IoU_list = []
+
+        FP_list = []  # over activation
+        FN_list = []  # under activation
+
+        for i in range(self.class_num):
+            IoU = self.TP[i] / (self.T[i] + self.P[i] - self.TP[i] + 1e-10) * 100
+            FP = (self.P[i] - self.TP[i]) / (self.T[i] + self.P[i] - self.TP[i] + 1e-10)
+            FN = (self.T[i] - self.TP[i]) / (self.T[i] + self.P[i] - self.TP[i] + 1e-10)
+
+            IoU_dic[self.class_names[i]] = IoU
+
+            IoU_list.append(IoU)
+            FP_list.append(FP)
+            FN_list.append(FN)
+
+        mIoU = np.mean(np.asarray(IoU_list))
+        mIoU_foreground = np.mean(np.asarray(IoU_list)[1:])
+
+        FP = np.mean(np.asarray(FP_list))
+        FN = np.mean(np.asarray(FN_list))
+
+        if clear:
+            self.clear()
+
+        if detail:
+            return mIoU, mIoU_foreground, IoU_dic, FP, FN
+        else:
+            return mIoU, mIoU_foreground
+
+    def clear(self):
+        self.TP = []
+        self.P = []
+        self.T = []
+
+        for _ in range(self.class_num):
+            self.TP.append(0)
+            self.P.append(0)
+            self.T.append(0)
+
 class mIoUOnline:
     def __init__(self, class_names):
         self.class_names = ['background'] + class_names

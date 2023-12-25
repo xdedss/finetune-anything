@@ -6,6 +6,9 @@ from .runner import BaseRunner, SemRunner, TextRunner
 from .scheduler import WarmupMultiStepLR
 from .utils import get_opt_pamams
 
+import typing
+from typing import Type
+
 AVAI_SCH = ["single_step", "multi_step", "warmup_multi_step", "cosine", "linear"]
 AVAI_MODEL = {'base_sam': BaseExtendSam, 'sem_sam': SemanticSam, 'text_sam': TextSam}
 # AVAI_OPT = {'base_opt': BaseOptimizer, 'sgd': torch.optim.SGD, 'adam': torch.optim.Adam}
@@ -25,7 +28,7 @@ def get_optimizer(opt_name, **kwargs):
     return AVAI_OPT[opt_name](**{k: v for k, v in kwargs.items() if v is not None})
 
 
-def get_runner(runner_name):
+def get_runner(runner_name) -> Type[BaseRunner]:
     if runner_name not in AVAI_RUNNER:
         print('not supported runner name, please implement it first.')
     return AVAI_RUNNER[runner_name]

@@ -41,8 +41,8 @@ train:
     lr_default:  1e-3
     wd_default: 1e-4
     momentum: 0.9
-    lr_list:  [ 1e-2, ]
-    group_keys: [ [ 'mask_adapter.decoder_head.output_hypernetworks_mlps', ], ]
+    lr_list:  [ 1e-3, ]
+    group_keys: [ [ 'mask_adapter.decoder_head.output_hypernetworks_mlps', ''], ] # the empty string matches everything
     wd_list:  [ 0.0, ]
   opt_name: 'sgd' # 'sgd'
   scheduler_name: 'cosine'
@@ -69,7 +69,7 @@ val:
     params:
       root: '/hdd0/lzr/'
       year: '2012'
-      image_set: 'train'
+      image_set: 'val'
     transforms:
       resize:
         params:
