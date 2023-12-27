@@ -13,6 +13,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--task_name', default='semantic_seg', type=str)
 parser.add_argument('--cfg', default=None, type=str)
 parser.add_argument('--ckp', required=True, type=str)
+parser.add_argument('--dump-path', default=None, type=str)
 parser.add_argument('--img', default=None, type=str)
 parser.add_argument('--prompt', default=None, type=str)
 
@@ -49,4 +50,5 @@ if __name__ == '__main__':
     if (args.img is not None and args.prompt is not None):
         runner.run_one_image(args.img, args.prompt)
     else:
-        runner._eval(dump_dir='dump')
+        res = runner._eval(dump_dir=args.dump_path)
+        print(res)

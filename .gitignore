@@ -177,4 +177,4 @@ pyrightconfig.json
 
 experiment
 sam_ckpt
-dump
+dump*

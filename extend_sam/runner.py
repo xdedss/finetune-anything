@@ -163,6 +163,7 @@ class TextRunner(BaseRunner):
         train_iterator = Iterator(self.train_loader)
         best_valid_mIoU = -1
         model_path = "{cfg.model_folder}/{cfg.experiment_name}/model.pth".format(cfg=cfg)
+        model_path_current = "{cfg.model_folder}/{cfg.experiment_name}/model_current.pth".format(cfg=cfg)
         log_path = "{cfg.log_folder}/{cfg.experiment_name}/log_file.txt".format(cfg=cfg)
         check_folder(model_path)
         check_folder(log_path)
@@ -218,7 +219,14 @@ class TextRunner(BaseRunner):
                           writer=writer, timer=self.train_timer)
             # eval
             if (iteration + 1) % cfg.eval_iter == 0:
+
+                # save a model anyway
+                save_model(self.model, model_path_current, parallel=self.the_number_of_gpu > 1)
+                print_and_save_log("saved model in {model_path}".format(model_path=model_path_current), path=log_path)
+
+                # eval
                 mIoU, _ = self._eval()
+
                 if best_valid_mIoU == -1 or best_valid_mIoU < mIoU:
                     best_valid_mIoU = mIoU
                     save_model(self.model, model_path, parallel=self.the_number_of_gpu > 1)
