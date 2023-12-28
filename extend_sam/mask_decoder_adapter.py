@@ -5,11 +5,14 @@ import torch
 from .segment_anything_ori.modeling.sam import Sam
 from .utils import fix_params
 from .segment_anything_ori.modeling.mask_decoder import MaskDecoder
+from .segment_anything_ori.modeling.transformer import Attention as OriAttention
 from typing import List, Tuple
 from torch.nn import functional as F
 from .mask_decoder_heads import SemSegHead
 from .mask_decoder_neck import MaskDecoderNeck
 
+from . import lora_utils
+import loralib
 
 class BaseMaskDecoderAdapter(MaskDecoder):
     '''
@@ -36,6 +39,34 @@ class BaseMaskDecoderAdapter(MaskDecoder):
                                                                    dense_prompt_embeddings=dense_embeddings,
                                                                    multimask_output=multimask_output, )
         return low_res_masks, iou_predictions
+
+
+
+class LoraMaskDecoderAdapter(BaseMaskDecoderAdapter):
+    '''
+      LoRA + original mask decoder
+    '''
+
+    # is fix and load params
+    def __init__(self, ori_sam: Sam, fix=False, rank: int=8):
+        super().__init__(ori_sam, fix=False)
+        
+        if fix:
+            raise NotImplementedError('It makes no sense to fix a LoRA layer, check your config')
+            # fix_params(self.sam_mask_decoder)
+        else:
+            # apply lora and fix non-lora params
+            def replace_fn(module: OriAttention):
+                replacement = lora_utils.DecoderAttentionLora(
+                    module.embedding_dim,
+                    module.num_heads,
+                    module.downsample_rate,
+                    rank
+                ).to(module.q_proj.weight.device)
+                replacement.load_state_dict(module.state_dict(), strict=False)
+                return replacement
+            lora_utils.replace_module_by_type(self.sam_mask_decoder, OriAttention, replace_fn)
+            loralib.mark_only_lora_as_trainable(self.sam_mask_decoder)
 
 
 class SemMaskDecoderAdapter(BaseMaskDecoderAdapter):

@@ -204,6 +204,12 @@ class Attention(nn.Module):
             input_size (int or None): Input resolution for calculating the relative positional
                 parameter size.
         """
+        self.dim = dim
+        self.num_heads = num_heads
+        self.qkv_bias = qkv_bias
+        self.rel_pos_zero_init = rel_pos_zero_init
+        self.input_size = input_size
+        
         super().__init__()
         self.num_heads = num_heads
         head_dim = dim // num_heads

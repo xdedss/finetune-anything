@@ -200,6 +200,8 @@ class Attention(nn.Module):
     ) -> None:
         super().__init__()
         self.embedding_dim = embedding_dim
+        self.num_heads = num_heads
+        self.downsample_rate = downsample_rate
         self.internal_dim = embedding_dim // downsample_rate
         self.num_heads = num_heads
         assert self.internal_dim % num_heads == 0, "num_heads must divide embedding_dim."

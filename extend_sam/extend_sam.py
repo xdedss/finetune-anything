@@ -2,8 +2,8 @@
 import torch
 import torch.nn as nn
 from .segment_anything_ori import sam_model_registry
-from .image_encoder_adapter import BaseImgEncodeAdapter
-from .mask_decoder_adapter import BaseMaskDecoderAdapter, SemMaskDecoderAdapter
+from .image_encoder_adapter import BaseImgEncodeAdapter, LoraImgEncodeAdapter
+from .mask_decoder_adapter import BaseMaskDecoderAdapter, SemMaskDecoderAdapter, LoraMaskDecoderAdapter
 from .prompt_encoder_adapter import BasePromptEncodeAdapter, TextEncoderAdapter
 
 
@@ -54,6 +54,8 @@ class TextSam(BaseExtendSam):
         super().__init__(ckpt_path=ckpt_path, fix_img_en=fix_img_en, fix_prompt_en=fix_prompt_en,
                          fix_mask_de=fix_mask_de, model_type=model_type)
         self.prompt_adapter = TextEncoderAdapter(self.ori_sam, fix=fix_prompt_en)
+        self.img_adapter = LoraImgEncodeAdapter(self.ori_sam, fix=fix_img_en, rank=8)
+        self.mask_adapter = LoraMaskDecoderAdapter(self.ori_sam, fix=fix_mask_de, rank=8)
     
     def forward(self, img, text_array):
         ''' text_array: len=batch size '''

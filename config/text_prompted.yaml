@@ -1,12 +1,12 @@
 train:
-  experiment_name: 'text_sam'
+  experiment_name: 'text_sam_lora_lora_10k'
 
   # Model
   model:
     sam_name: 'text_sam'
     params:
       # Fix the a part of parameters in SAM
-      fix_img_en: True
+      fix_img_en: False
       fix_prompt_en: True
       fix_mask_de: False
       ckpt_path: 'sam_ckpt/sam_vit_b_01ec64.pth'
@@ -48,12 +48,12 @@ train:
   scheduler_name: 'cosine'
 
   # Runner
-  max_iter: 100000
+  max_iter: 10000
   log_iter: 20
   eval_iter: 200
   runner_name: 'text_runner'
   # Dataloader
-  bs: 4 # 8
+  bs: 2 # 8
   num_workers: 2
   drop_last: True
   # Logger

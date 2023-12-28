@@ -176,6 +176,9 @@ class TextRunner(BaseRunner):
         for iteration in range(cfg.max_iter):
             images, labels, text_array = train_iterator.get()
             images, labels = images.cuda(), labels.cuda().long()
+            # print(images.view(-1)[500000:500020])
+            # print(text_array)
+            # xx
 
             # print(images.shape, labels.shape)
             bs = images.shape[0]
@@ -249,19 +252,30 @@ class TextRunner(BaseRunner):
         eval_metric = BinarymIoUOnline()
 
         pbar = tqdm.tqdm(self.val_loader)
+
+        i = 0
         
         with torch.no_grad():
             for index, (images, labels, text_array) in enumerate(pbar):
                 images = images.cuda() # bs 3 h w
                 labels = labels.cuda() # bs h w
+                # print(images.view(-1)[500000:500020])
+                # print(text_array)
                 masks_pred, iou_pred = self.model(images, text_array)
                 masks_pred = masks_pred[:, 0, :, :] # we have only one output
                 predictions = (masks_pred > 0)
-                for batch_index in range(images.size()[0]):
+                for batch_index in range(images.shape[0]):
                     pred_mask = get_numpy_from_tensor(predictions[batch_index])
                     gt_mask = get_numpy_from_tensor(labels[batch_index].squeeze(0))
                     h, w = pred_mask.shape
                     gt_mask = cv2.resize(gt_mask, (w, h), interpolation=cv2.INTER_NEAREST)
+
+                    cv2.imwrite('zgt_mask.png', gt_mask * 255)
+                    cv2.imwrite('zpred_mask.png', pred_mask * 255)
+                
+                # i += 1
+                # if (i >= 1):
+                #     xxx
 
                 if (dump_dir is not None):
                     os.makedirs(dump_dir, exist_ok=True)
@@ -281,7 +295,7 @@ class TextRunner(BaseRunner):
                     # import numpy as np
                     # print(f'{text_array[batch_index]}, TP: {np.sum(pred_mask * gt_mask)}, pred {np.sum(pred_mask)}, gt {np.sum(gt_mask)}')
 
-                    eval_metric.add(pred_mask, gt_mask)
+                eval_metric.add(pred_mask, gt_mask)
         self.model.train()
         return eval_metric.get(clear=True)
 

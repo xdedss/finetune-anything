@@ -168,6 +168,7 @@ class TorchVOCTextSegmentation(VOCSegmentation):
         Returns:
             tuple: (image, target, selected_class_name) where target is the image segmentation.
         """
+        # print(f'[Get] i={index}, returning {self.images[index]}')
         img = Image.open(self.images[index]).convert('RGB')
         target = Image.open(self.masks[index])
 
