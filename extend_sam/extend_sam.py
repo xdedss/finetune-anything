@@ -5,6 +5,7 @@ from .segment_anything_ori import sam_model_registry
 from .image_encoder_adapter import BaseImgEncodeAdapter, LoraImgEncodeAdapter
 from .mask_decoder_adapter import BaseMaskDecoderAdapter, SemMaskDecoderAdapter, LoraMaskDecoderAdapter
 from .prompt_encoder_adapter import BasePromptEncodeAdapter, TextEncoderAdapter
+from .utils import fix_params, fix_params_by_name
 
 
 class BaseExtendSam(nn.Module):
@@ -50,12 +51,27 @@ class SemanticSam(BaseExtendSam):
 
 class TextSam(BaseExtendSam):
 
-    def __init__(self, ckpt_path=None, fix_img_en=False, fix_prompt_en=False, fix_mask_de=False, model_type='vit_b'):
-        super().__init__(ckpt_path=ckpt_path, fix_img_en=fix_img_en, fix_prompt_en=fix_prompt_en,
-                         fix_mask_de=fix_mask_de, model_type=model_type)
-        self.prompt_adapter = TextEncoderAdapter(self.ori_sam, fix=fix_prompt_en)
-        self.img_adapter = LoraImgEncodeAdapter(self.ori_sam, fix=fix_img_en, rank=8)
-        self.mask_adapter = LoraMaskDecoderAdapter(self.ori_sam, fix=fix_mask_de, rank=8)
+    def __init__(self, ckpt_path=None, img_en_type='fix', prompt_en_type='fix', mask_de_type='fix', model_type='vit_b', enhance_proj=False):
+        
+        assert (img_en_type in ['fix', 'full'] or img_en_type.startswith('lora')), img_en_type
+        assert (prompt_en_type in ['fix', 'full']), prompt_en_type
+        assert (mask_de_type in ['fix', 'full'] or mask_de_type.startswith('lora')), mask_de_type
+        
+        super().__init__(ckpt_path=ckpt_path, fix_img_en=img_en_type=='fix', fix_prompt_en=prompt_en_type=='fix',
+                         fix_mask_de=mask_de_type=='fix', model_type=model_type)
+        
+        if (img_en_type.startswith('lora')):
+            lora_rank = int(img_en_type.split('lora')[1])
+            self.img_adapter = LoraImgEncodeAdapter(self.ori_sam, fix=False, rank=lora_rank)
+        
+        if (mask_de_type.startswith('lora')):
+            lora_rank = int(mask_de_type.split('lora')[1])
+            self.mask_adapter = LoraMaskDecoderAdapter(self.ori_sam, fix=False, rank=lora_rank)
+        
+        self.prompt_adapter = TextEncoderAdapter(self.ori_sam, fix=prompt_en_type=='fix', enhance_proj=enhance_proj)
+        
+        # self.mask_adapter = LoraMaskDecoderAdapter(self.ori_sam, fix=fix_mask_de, rank=lora_rank)
+        # fix_params_by_name(self.mask_adapter, ['output_upscaling'])
     
     def forward(self, img, text_array):
         ''' text_array: len=batch size '''

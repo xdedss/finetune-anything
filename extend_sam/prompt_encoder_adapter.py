@@ -23,7 +23,7 @@ class BasePromptEncodeAdapter(nn.Module):
 
 class TextEncoderAdapter(BasePromptEncodeAdapter):
 
-    def __init__(self, ori_sam: Sam, fix=False):
+    def __init__(self, ori_sam: Sam, fix=False, enhance_proj=False):
         super().__init__(ori_sam, fix=True) # the original model is a dummy so it's always fixed
 
         model, preprocess = clip.load("ViT-B/32", device=ori_sam.device)
@@ -32,6 +32,15 @@ class TextEncoderAdapter(BasePromptEncodeAdapter):
         self.projection = nn.Sequential(
             nn.Linear(512, 256),
         )
+        self.enhance_proj = enhance_proj
+        if (self.enhance_proj):
+            self.projection2 = nn.Sequential(
+                nn.Linear(512, 512),
+                nn.LeakyReLU(),
+                nn.Linear(512, 384),
+                nn.LeakyReLU(),
+                nn.Linear(384, 256),
+            )
 
         if fix:
             fix_params(self.clip) # the real meat here is CLIP
@@ -44,6 +53,8 @@ class TextEncoderAdapter(BasePromptEncodeAdapter):
         text_emb = clip.tokenize(text_array).to(self.sam_prompt_encoder._get_device())
         text_features = self.clip.encode_text(text_emb) # bs, 512
         text_proj = self.projection(text_features) # bs, 256
+        if (self.enhance_proj):
+            text_proj = text_proj + self.projection2(text_features)
 
         # print('shapes (sparse, dense, text):', dummy_sparse_emb.shape, dummy_dense_emb.shape, text_features.shape)
         # x

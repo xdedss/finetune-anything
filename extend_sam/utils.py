@@ -13,6 +13,11 @@ def fix_params(model):
     for name, param in model.named_parameters():
         param.requires_grad = False
 
+def fix_params_by_name(model, keywords):
+    for name, param in model.named_parameters():
+        has_keyword = [(keyword in name) for keyword in keywords]
+        if (np.any(has_keyword)):
+            param.requires_grad = False
 
 def load_params(model, params):
     pass
