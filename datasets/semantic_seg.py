@@ -175,6 +175,11 @@ class TorchVOCTextSegmentation(VOCSegmentation):
         # only select class names that has value
         unique_labels = set(np.unique(np.array(target)))
         unique_labels.remove(255)
+        # remove bg, add random label in case nothing's left
+        if (0 in unique_labels):
+            unique_labels.remove(0)
+        if (len(unique_labels) == 0):
+            unique_labels.add(self.rs.randint(1, 21))
         # print(unique_labels)
         selected_class_idx = self.rs.choice(list(unique_labels))
         selected_class_name = self.class_names[selected_class_idx]
@@ -189,3 +194,91 @@ class TorchVOCTextSegmentation(VOCSegmentation):
         # print(target.min(), target.max())
         # xx
         return img, target, selected_class_name
+
+class TorchVOCTextSegmentationFull(VOCSegmentation):
+    ''' full dataset without random sampling labels '''
+    def __init__(
+            self, root, year='2012', image_set='train', 
+            *,
+            download=False, transform=None, target_transform=None,
+            filter_keywords=(), filter_class_idx=()
+            ):
+        super().__init__(root=root, year=year, image_set=image_set, download=download,
+                                                   transform=transform, target_transform=target_transform)
+        self.class_names = ['background', 'aeroplane', 'bicycle', 'bird', 'boat', 'bottle',
+                            'bus', 'car', 'cat', 'chair', 'cow',
+                            'diningtable', 'dog', 'horse', 'motorbike', 'person',
+                            'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor']
+
+        # self.rs = np.random.RandomState(42)
+
+        if (filter_keywords is None):
+            filter_keywords = ()
+        self.filter_keywords = filter_keywords
+        if (filter_class_idx is None):
+            filter_class_idx = ()
+        self.filter_class_idx = filter_class_idx
+
+        self.build_index()
+    
+    def build_index(self):
+        self.index_table = [] # (original_idx, label_idx)
+        for original_index in range(super().__len__()):
+
+            target = Image.open(self.masks[original_index])
+
+            unique_labels = set(np.unique(np.array(target)))
+            unique_labels.remove(255) # in VOC, 255 = invalid
+
+            # filter by idx
+            for remove_idx in self.filter_class_idx:
+                if (remove_idx in unique_labels):
+                    unique_labels.remove(remove_idx)
+            
+            # filter by keywords in class name
+            unique_labels_filtered = []
+            for unique_idx in unique_labels:
+                label_text = self.class_names[unique_idx]
+                has_keyword = False
+                for keyword in self.filter_keywords:
+                    if keyword in label_text:
+                        has_keyword = True
+                if (not has_keyword):
+                    unique_labels_filtered.append(unique_idx)
+            
+
+            for unique_idx in unique_labels_filtered:
+                self.index_table.append((original_index, unique_idx))
+        
+        print(f'index building done, {super().__len__()} -> {len(self)}')
+
+    def __len__(self):
+        return len(self.index_table)
+
+    def __getitem__(self, index: int):
+        """
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: (image, target, selected_class_name) where target is the image segmentation.
+        """
+        original_index, class_idx = self.index_table[index]
+        # print(f'[Get] i={index}, returning {self.images[index]}')
+        img = Image.open(self.images[original_index]).convert('RGB')
+        target = Image.open(self.masks[original_index])
+
+        selected_class_idx = class_idx
+        selected_class_name = self.class_names[selected_class_idx]
+
+        if self.transforms is not None:
+            img, target = self.transforms(img, target)
+
+        target = (np.array(target) == selected_class_idx).astype(np.uint8)
+
+        # print(img.shape, target.shape, target.dtype)
+
+        # print(target.min(), target.max())
+        # xx
+        return img, target, selected_class_name
+

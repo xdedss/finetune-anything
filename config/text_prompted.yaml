@@ -1,5 +1,5 @@
 train:
-  experiment_name: 'text_sam_ft_lora16_10k'
+  experiment_name: 'text_sam_ft_lora16_10k_nobg_full'
 
   # Model
   model:
@@ -15,11 +15,13 @@ train:
 
   # Dataset
   dataset:
-    name: 'torch_voc_text'
+    name: 'torch_voc_text_full'
     params:
       root: '/hdd0/lzr/'
       year: '2012'
       image_set: 'train'
+      filter_keywords:
+      - background
     transforms:
       resize:
         params:
