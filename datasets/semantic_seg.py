@@ -2,7 +2,10 @@ import os
 from PIL import Image
 from torch.utils.data import Dataset
 from torchvision.datasets import VOCSegmentation, VisionDataset
+from torchvision.datasets.vision import StandardTransform
 import numpy as np
+import glob
+import tqdm
 
 
 class BaseSemanticDataset(VisionDataset):
@@ -281,4 +284,175 @@ class TorchVOCTextSegmentationFull(VOCSegmentation):
         # print(target.min(), target.max())
         # xx
         return img, target, selected_class_name
+
+
+
+# ported from nas
+class GeneralSegmentationDataset(Dataset):
+    '''
+    file structure:
+        image_dir
+            xxx.png
+            yyy.png
+            ...
+        mask_dir
+            xxx.png
+            yyy.png
+            ...
+            
+    pixel value of image is 0-255
+
+    pixel value of label is 0,1,2,...
+    '''
+
+    def __init__(
+            self, image_dir, mask_dir, transform=None, target_transform=None,
+            *,
+            len_limit=None, ):
+
+        self.rgb_filepath_list = []
+        self.cls_filepath_list= []
+        if isinstance(image_dir, list) and isinstance(mask_dir, list):
+            for img_dir_path, mask_dir_path in zip(image_dir, mask_dir):
+                self.batch_generate(img_dir_path, mask_dir_path)
+        elif isinstance(image_dir, list) and not isinstance(mask_dir, list):
+            for img_dir_path in image_dir:
+                self.batch_generate(img_dir_path, mask_dir)
+        else:
+            self.batch_generate(image_dir, mask_dir)
+
+
+        has_separate_transform = transform is not None or target_transform is not None
+
+        # for backwards-compatibility
+        self.transform = transform
+        self.target_transform = target_transform
+
+        if has_separate_transform:
+            transforms = StandardTransform(transform, target_transform)
+            
+            self.transforms = transforms
+        else:
+            self.transforms = None
+
+    def batch_generate(self, image_dir, mask_dir):
+        rgb_filepath_list = glob.glob(os.path.join(image_dir, '*.tif'))
+        rgb_filepath_list += glob.glob(os.path.join(image_dir, '*.png'))
+        
+        print('%s -- Dataset images: %d' % (os.path.dirname(image_dir), len(rgb_filepath_list)))
+        rgb_filename_list = [os.path.split(fp)[-1] for fp in rgb_filepath_list]
+        cls_filepath_list = []
+        if mask_dir is not None:
+            for fname in rgb_filename_list:
+                cls_filepath_list.append(os.path.join(mask_dir, fname))
+        self.rgb_filepath_list += rgb_filepath_list
+        self.cls_filepath_list += cls_filepath_list
+
+    def __getitem__(self, idx):
+        
+        img = Image.open(self.rgb_filepath_list[idx]).convert('RGB')
+        
+        target = Image.open(self.cls_filepath_list[idx])
+        
+        if self.transforms is not None:
+            img, target = self.transforms(img, target)
+        
+        return img, target
+
+    def __len__(self):
+        return len(self.rgb_filepath_list)
+
+
+
+class GeneralTextSegmentationFull(GeneralSegmentationDataset):
+    ''' full dataset without random sampling labels '''
+    def __init__(
+            self, img_dir, mask_dir, class_names,
+            *,
+            transform=None,
+            target_transform=None,
+            filter_keywords=(), filter_class_idx=(),
+            len_limit=None
+            ):
+        super().__init__(image_dir=img_dir, mask_dir=mask_dir,
+                    transform=transform, target_transform=target_transform)
+        self.class_names = [str(name) for name in class_names]
+        self.len_limit = len_limit
+
+        # self.rs = np.random.RandomState(42)
+
+        if (filter_keywords is None):
+            filter_keywords = ()
+        self.filter_keywords = filter_keywords
+        if (filter_class_idx is None):
+            filter_class_idx = ()
+        self.filter_class_idx = filter_class_idx
+
+        self.build_index()
+    
+    def build_index(self):
+        self.index_table = [] # (original_idx, label_idx)
+        print('building dataset index')
+        for original_index in tqdm.tqdm(range(super().__len__())):
+
+            target = Image.open(self.cls_filepath_list[original_index])
+
+            unique_labels = set(np.unique(np.array(target)))
+            # print(f'{original_index}: {unique_labels}')
+
+            # filter by idx
+            for remove_idx in self.filter_class_idx:
+                if (remove_idx in unique_labels):
+                    unique_labels.remove(remove_idx)
+            
+            # filter by keywords in class name
+            unique_labels_filtered = []
+            for unique_idx in unique_labels:
+                label_text = self.class_names[unique_idx]
+                has_keyword = False
+                for keyword in self.filter_keywords:
+                    if keyword in label_text:
+                        has_keyword = True
+                if (not has_keyword):
+                    unique_labels_filtered.append(unique_idx)
+            
+
+            for unique_idx in unique_labels_filtered:
+                self.index_table.append((original_index, unique_idx))
+        
+        print(f'index building done, {super().__len__()} -> {len(self)}')
+
+    def __len__(self):
+        if (self.len_limit is not None):
+            return min(self.len_limit, len(self.index_table))
+        else:
+            return len(self.index_table)
+
+    def __getitem__(self, index: int):
+        """
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: (image, target, selected_class_name) where target is the image segmentation.
+        """
+        original_index, class_idx = self.index_table[index]
+        # print(f'[Get] i={index}, returning {self.images[index]}')
+        img = Image.open(self.rgb_filepath_list[original_index]).convert('RGB')
+        target = Image.open(self.cls_filepath_list[original_index])
+
+        selected_class_idx = class_idx
+        selected_class_name = self.class_names[selected_class_idx]
+
+        if self.transforms is not None:
+            img, target = self.transforms(img, target)
+
+        target = (np.array(target) == selected_class_idx).astype(np.uint8)
+
+        # print(img.shape, target.shape, target.dtype)
+
+        # print(target.min(), target.max())
+        # xx
+        return img, target, selected_class_name
+
 

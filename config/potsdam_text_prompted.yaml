@@ -1,25 +1,31 @@
 train:
-  experiment_name: 'text_sam_ft_lora16_10k_nobg_full'
+  experiment_name: 'potsdam_text_sam_lora16_ft_10k_nobg_full'
 
   # Model
   model:
     sam_name: 'text_sam'
     params:
       # Fix the a part of parameters in SAM
-      img_en_type: 'full'
+      img_en_type: 'lora16'
       prompt_en_type: 'fix'
-      mask_de_type: 'lora16'
+      mask_de_type: 'full'
       enhance_proj: False
       ckpt_path: 'sam_ckpt/sam_vit_b_01ec64.pth'
       model_type: 'vit_b'    # type should be in [vit_h, vit_b, vit_l, default]
 
   # Dataset
   dataset:
-    name: 'torch_voc_text_full'
+    name: 'general_text_full'
     params:
-      root: '/hdd0/lzr/'
-      year: '2012'
-      image_set: 'train'
+      img_dir: '/home/lzr/datasets/isprs_seg/cut/train/img'
+      mask_dir: '/home/lzr/datasets/isprs_seg/cut/train/ann'
+      class_names:
+      - Impervious surfaces
+      - Building
+      - Low vegetation
+      - Tree
+      - Car
+      - Clutter/background
       filter_keywords:
       - background
     transforms:
@@ -68,11 +74,17 @@ train:
 val:
   # Dataset
   dataset:
-    name: 'torch_voc_text_full'
+    name: 'general_text_full'
     params:
-      root: '/hdd0/lzr/'
-      year: '2012'
-      image_set: 'val'
+      img_dir: '/home/lzr/datasets/isprs_seg/cut/val/img'
+      mask_dir: '/home/lzr/datasets/isprs_seg/cut/val/ann'
+      class_names:
+      - Impervious surfaces
+      - Building
+      - Low vegetation
+      - Tree
+      - Car
+      - Clutter/background
       filter_keywords:
       - background
     transforms:
