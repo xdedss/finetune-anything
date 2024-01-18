@@ -1,0 +1,121 @@
+train:
+  experiment_name: 'text_sam_generalize_lora16_lora16_10k_nobg_full'
+
+  # Model
+  model:
+    sam_name: 'text_sam'
+    params:
+      # Fix the a part of parameters in SAM
+      img_en_type: 'lora16'
+      prompt_en_type: 'fix'
+      mask_de_type: 'lora16'
+      enhance_proj: False
+      ckpt_path: 'sam_ckpt/sam_vit_b_01ec64.pth'
+      model_type: 'vit_b'    # type should be in [vit_h, vit_b, vit_l, default]
+
+  # Dataset
+  # train: ignore 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor'
+  dataset:
+    name: 'torch_voc_text_full'
+    params:
+      root: '/hdd0/lzr/'
+      year: '2012'
+      image_set: 'train'
+      filter_keywords:
+      - background
+      - pottedplant
+      - sheep
+      - sofa
+      - train
+      - tvmonitor
+    transforms:
+      resize:
+        params:
+          size: [1024, 1024]
+      to_tensor:
+        params: ~
+    target_transforms:
+      resize:
+        params:
+          size: [1024, 1024]
+
+  # Losses
+  losses:
+    bce:
+      weight: 0.5
+      params:
+
+  # Optimizer
+  opt_params:
+    lr_default:  1e-3
+    wd_default: 1e-4
+    momentum: 0.9
+    lr_list:  [ 1e-3, ]
+    group_keys: [ [ 'mask_adapter.decoder_head.output_hypernetworks_mlps', ''], ] # the empty string matches everything
+    wd_list:  [ 0.0, ]
+  opt_name: 'sgd' # 'sgd'
+  scheduler_name: 'cosine'
+
+  # Runner
+  max_iter: 10000
+  log_iter: 20
+  eval_iter: 200
+  runner_name: 'text_runner'
+  # Dataloader
+  bs: 2 # 8
+  num_workers: 2
+  drop_last: True
+  # Logger
+  use_tensorboard: True
+  tensorboard_folder: './experiment/tensorboard'
+  log_folder: './experiment/log'
+  model_folder: './experiment/model'
+
+val:
+  # Dataset
+  # val: ignore these
+  # 'aeroplane', 'bicycle', 'bird', 'boat', 'bottle',                                                                                                                                                             
+  # 'bus', 'car', 'cat', 'chair', 'cow',                                                                                                                                                                                        
+  # 'diningtable', 'dog', 'horse', 'motorbike', 'person'
+  dataset:
+    name: 'torch_voc_text_full'
+    params:
+      root: '/hdd0/lzr/'
+      year: '2012'
+      image_set: 'val'
+      filter_keywords:
+      - background
+      - aeroplane
+      - bicycle
+      - bird
+      - boat
+      - bottle
+      - bus
+      - car
+      - cat
+      - chair
+      - cow
+      - diningtable
+      - dog
+      - horse
+      - motorbike
+      - person
+    transforms:
+      resize:
+        params:
+          size: [1024, 1024]
+      to_tensor:
+        params: ~
+    target_transforms:
+      resize:
+        params:
+          size: [1024, 1024]
+
+  bs: 2
+  num_workers: 2
+  drop_last: True
+
+
+test:
+  need_test: False
+
