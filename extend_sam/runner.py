@@ -250,6 +250,7 @@ class TextRunner(BaseRunner):
         self.eval_timer.start()
         class_names = self.val_loader.dataset.class_names
         eval_metric = BinarymIoUOnline()
+        eval_metric_for_each_class = {class_name: BinarymIoUOnline() for class_name in class_names}
 
         pbar = tqdm.tqdm(self.val_loader)
 
@@ -267,11 +268,15 @@ class TextRunner(BaseRunner):
                 for batch_index in range(images.shape[0]):
                     pred_mask = get_numpy_from_tensor(predictions[batch_index])
                     gt_mask = get_numpy_from_tensor(labels[batch_index].squeeze(0))
+                    class_name = text_array[batch_index]
                     h, w = pred_mask.shape
                     gt_mask = cv2.resize(gt_mask, (w, h), interpolation=cv2.INTER_NEAREST)
 
-                    cv2.imwrite('zgt_mask.png', gt_mask * 255)
-                    cv2.imwrite('zpred_mask.png', pred_mask * 255)
+                    # cv2.imwrite('zgt_mask.png', gt_mask * 255)
+                    # cv2.imwrite('zpred_mask.png', pred_mask * 255)
+
+                    eval_metric.add(pred_mask, gt_mask)
+                    eval_metric_for_each_class[class_name].add(pred_mask, gt_mask)
                 
                 # i += 1
                 # if (i >= 1):
@@ -295,9 +300,11 @@ class TextRunner(BaseRunner):
                     # import numpy as np
                     # print(f'{text_array[batch_index]}, TP: {np.sum(pred_mask * gt_mask)}, pred {np.sum(pred_mask)}, gt {np.sum(gt_mask)}')
 
-                eval_metric.add(pred_mask, gt_mask)
         self.model.train()
-        return eval_metric.get(clear=True)
+
+        total_mIoU, _ = eval_metric.get(clear=True)
+        per_class_mIoU = [eval_metric_for_each_class[class_name].get(clear=True)[0] for class_name in class_names]
+        return total_mIoU, per_class_mIoU
 
     def _compute_loss(self, total_loss, loss_dict, mask_pred, labels, cfg):
         """
