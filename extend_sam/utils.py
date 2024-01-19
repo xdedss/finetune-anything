@@ -23,7 +23,7 @@ def load_params(model, params):
     pass
 
 
-def get_opt_pamams(model, lr_list, group_keys, wd_list):
+def get_opt_pamams(model: torch.nn.Module, lr_list, group_keys, wd_list):
     '''
 
     :param model: model
@@ -34,6 +34,8 @@ def get_opt_pamams(model, lr_list, group_keys, wd_list):
     '''
     assert len(lr_list) == len(group_keys), "lr_list should has the same length as group_keys"
     assert len(lr_list) == len(wd_list), "lr_list should has the same length as wd_list"
+    if (len(group_keys) == 0):
+        return model.parameters()
     params_group = [[] for _ in range(len(lr_list))]
     for name, value in model.named_parameters():
         for index, g_keys in enumerate(group_keys):

@@ -12,7 +12,11 @@ from typing import Type
 AVAI_SCH = ["single_step", "multi_step", "warmup_multi_step", "cosine", "linear"]
 AVAI_MODEL = {'base_sam': BaseExtendSam, 'sem_sam': SemanticSam, 'text_sam': TextSam}
 # AVAI_OPT = {'base_opt': BaseOptimizer, 'sgd': torch.optim.SGD, 'adam': torch.optim.Adam}
-AVAI_OPT = {'sgd': torch.optim.SGD, 'adam': torch.optim.Adam, 'adamw': torch.optim.AdamW}
+AVAI_OPT = {
+    'sgd': torch.optim.SGD, 
+    'adam': lambda momentum, **kwargs: torch.optim.Adam(**kwargs), 
+    'adamw': lambda momentum, **kwargs: torch.optim.AdamW(**kwargs),
+    'rmsprop': torch.optim.RMSprop}
 AVAI_RUNNER = {'base_runner': BaseRunner, 'sem_runner': SemRunner, 'text_runner': TextRunner}
 
 

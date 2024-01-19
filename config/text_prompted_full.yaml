@@ -1,5 +1,5 @@
 train:
-  experiment_name: 'text_sam_allft_10k_0.2lr'
+  experiment_name: 'text_sam_allft_10k_0.2lr_linear'
 
   # Model
   model:
@@ -41,14 +41,14 @@ train:
 
   # Optimizer
   opt_params:
-    lr_default:  1e-3
-    wd_default: 1e-4
+    lr_default:  2e-4
+    wd_default: 0.0
     momentum: 0.9
-    lr_list:  [ 2e-4, ]
-    group_keys: [ [ 'mask_adapter.decoder_head.output_hypernetworks_mlps', ''], ] # the empty string matches everything
-    wd_list:  [ 0.0, ]
+    lr_list:  [  ]
+    group_keys: [  ] # the empty string matches everything
+    wd_list:  [  ]
   opt_name: 'sgd' # 'sgd'
-  scheduler_name: 'cosine'
+  scheduler_name: 'linear'
 
   # Runner
   max_iter: 10000
