@@ -41,7 +41,7 @@ if __name__ == '__main__':
                                 wd_list=train_cfg.opt_params.wd_list)
     optimizer = get_optimizer(opt_name=train_cfg.opt_name, params=opt_params, lr=train_cfg.opt_params.lr_default,
                               momentum=train_cfg.opt_params.momentum, weight_decay=train_cfg.opt_params.wd_default)
-    scheduler = get_scheduler(optimizer=optimizer, lr_scheduler=train_cfg.scheduler_name)
+    scheduler = get_scheduler(optimizer=optimizer, lr_scheduler=train_cfg.scheduler_name, max_epoch=train_cfg.max_iter)
     runner = get_runner(train_cfg.runner_name)(model, optimizer, losses, train_loader, val_loader, scheduler)
 
     # copy config

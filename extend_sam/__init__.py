@@ -124,7 +124,7 @@ def get_scheduler(
 
     elif lr_scheduler == "linear":
         def lambda_rule(epoch):
-            lr_l = 1.0 - max(0, epoch - n_epochs_init) / float(n_epochs_decay + 1)
+            lr_l = 1.0 - max(0, epoch - n_epochs_init) / float((max_epoch - n_epochs_init) + 1)
             return lr_l
 
         scheduler = torch.optim.lr_scheduler.LambdaLR(

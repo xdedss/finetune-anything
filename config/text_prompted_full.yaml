@@ -1,5 +1,5 @@
 train:
-  experiment_name: 'text_sam_allft_10k_0.2lr_linear'
+  experiment_name: 'text_sam_allft_10k_0.01lr_linear'
 
   # Model
   model:
@@ -41,7 +41,7 @@ train:
 
   # Optimizer
   opt_params:
-    lr_default:  2e-4
+    lr_default:  1e-5
     wd_default: 0.0
     momentum: 0.9
     lr_list:  [  ]
