@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 from datasets import get_dataset
 from losses import get_losses
 from extend_sam import get_model, get_optimizer, get_scheduler, get_opt_pamams, get_runner
+import os, shutil
 
 supported_tasks = ['detection', 'semantic_seg', 'instance_seg']
 parser = argparse.ArgumentParser()
@@ -17,10 +18,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
     task_name = args.task_name
     if args.cfg is not None:
-        config = OmegaConf.load(args.cfg)
+        config_path = args.cfg
     else:
         assert task_name in supported_tasks, "Please input the supported task name."
-        config = OmegaConf.load("./config/{task_name}.yaml".format(task_name=args.task_name))
+        config_path = "./config/{task_name}.yaml".format(task_name=args.task_name)
+    config = OmegaConf.load(config_path)
 
     train_cfg = config.train
     val_cfg = config.val
@@ -41,6 +43,12 @@ if __name__ == '__main__':
                               momentum=train_cfg.opt_params.momentum, weight_decay=train_cfg.opt_params.wd_default)
     scheduler = get_scheduler(optimizer=optimizer, lr_scheduler=train_cfg.scheduler_name)
     runner = get_runner(train_cfg.runner_name)(model, optimizer, losses, train_loader, val_loader, scheduler)
+
+    # copy config
+    model_dir = f"{train_cfg.model_folder}/{train_cfg.experiment_name}"
+    os.makedirs(model_dir, exist_ok=True)
+    shutil.copy(config_path, os.path.join(model_dir, 'cfg.yaml'))
+
     # train_step
     runner.train(train_cfg)
     if test_cfg.need_test:

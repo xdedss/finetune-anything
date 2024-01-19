@@ -1,5 +1,5 @@
 train:
-  experiment_name: 'text_sam_allft_10k'
+  experiment_name: 'text_sam_allft_10k_0.2lr'
 
   # Model
   model:
@@ -44,7 +44,7 @@ train:
     lr_default:  1e-3
     wd_default: 1e-4
     momentum: 0.9
-    lr_list:  [ 1e-3, ]
+    lr_list:  [ 2e-4, ]
     group_keys: [ [ 'mask_adapter.decoder_head.output_hypernetworks_mlps', ''], ] # the empty string matches everything
     wd_list:  [ 0.0, ]
   opt_name: 'sgd' # 'sgd'

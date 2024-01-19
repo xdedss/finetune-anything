@@ -23,15 +23,19 @@ class BasePromptEncodeAdapter(nn.Module):
 
 class TextEncoderAdapter(BasePromptEncodeAdapter):
 
-    def __init__(self, ori_sam: Sam, fix=False, enhance_proj=False):
+    def __init__(self, ori_sam: Sam, fix=False, enhance_proj=False, multi_token_proj=1):
         super().__init__(ori_sam, fix=True) # the original model is a dummy so it's always fixed
 
         model, preprocess = clip.load("ViT-B/32", device=ori_sam.device)
         self.clip = model
 
+        self.multi_token_proj = max(1, int(multi_token_proj)) # how many tokens will the text encoder generate
+        proj_out_dim = 256 * multi_token_proj
+
         self.projection = nn.Sequential(
-            nn.Linear(512, 256),
+            nn.Linear(512, proj_out_dim),
         )
+
         self.enhance_proj = enhance_proj
         if (self.enhance_proj):
             self.projection2 = nn.Sequential(
@@ -39,7 +43,7 @@ class TextEncoderAdapter(BasePromptEncodeAdapter):
                 nn.LeakyReLU(),
                 nn.Linear(512, 384),
                 nn.LeakyReLU(),
-                nn.Linear(384, 256),
+                nn.Linear(384, proj_out_dim),
             )
 
         if fix:
@@ -52,7 +56,7 @@ class TextEncoderAdapter(BasePromptEncodeAdapter):
 
         text_emb = clip.tokenize(text_array).to(self.sam_prompt_encoder._get_device())
         text_features = self.clip.encode_text(text_emb) # bs, 512
-        text_proj = self.projection(text_features) # bs, 256
+        text_proj = self.projection(text_features) # bs, 256 * multi_token
         if (self.enhance_proj):
             text_proj = text_proj + self.projection2(text_features)
 
@@ -61,7 +65,7 @@ class TextEncoderAdapter(BasePromptEncodeAdapter):
 
         sparse_emb = torch.cat([
             einops.repeat(dummy_sparse_emb, '1 n d -> b n d', b=text_proj.shape[0]), 
-            einops.rearrange(text_proj, 'bs dim -> bs 1 dim')
+            einops.rearrange(text_proj, 'bs (num_tok dim) -> bs num_tok dim', num_tok=self.multi_token_proj)
             ], dim=1)
         # sparse_emb = dummy_sparse_emb
 
