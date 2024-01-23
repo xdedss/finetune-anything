@@ -11,6 +11,7 @@ import fire
 import jinja2
 import prettytable
 import yaml
+import file_lock
 
 
 def expand_config_template(config_workspace: str):
@@ -102,7 +103,8 @@ def run_multiple_commands_on_gpu(command_list, num_workers: int):
 
 def main(config_workspace):
     command_list = expand_config_template(config_workspace)
-    run_multiple_commands_on_gpu(command_list, num_workers=4)
+    with file_lock.FileLock('group_train.lock'):
+        run_multiple_commands_on_gpu(command_list, num_workers=4)
 
 if __name__ == '__main__':
     fire.Fire(main)
