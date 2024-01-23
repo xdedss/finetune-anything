@@ -9,7 +9,7 @@ from .utils import get_opt_pamams
 import typing
 from typing import Type
 
-AVAI_SCH = ["single_step", "multi_step", "warmup_multi_step", "cosine", "linear"]
+AVAI_SCH = ["single_step", "multi_step", "warmup_multi_step", "cosine", "linear", "constant"]
 AVAI_MODEL = {'base_sam': BaseExtendSam, 'sem_sam': SemanticSam, 'text_sam': TextSam}
 # AVAI_OPT = {'base_opt': BaseOptimizer, 'sgd': torch.optim.SGD, 'adam': torch.optim.Adam}
 AVAI_OPT = {
@@ -129,6 +129,11 @@ def get_scheduler(
 
         scheduler = torch.optim.lr_scheduler.LambdaLR(
             optimizer, lr_lambda=lambda_rule
+        )
+    
+    elif lr_scheduler == "constant":
+        scheduler = torch.optim.lr_scheduler.ConstantLR(
+            optimizer, factor=1.0
         )
 
     return scheduler

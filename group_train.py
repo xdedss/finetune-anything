@@ -1,14 +1,16 @@
 
-import os
-import yaml
-import sys
-import jinja2
 import itertools
-import prettytable
 import json
+import os
+import subprocess
+import sys
 import threading
 import time
-import subprocess
+
+import fire
+import jinja2
+import prettytable
+import yaml
 
 
 def expand_config_template(config_workspace: str):
@@ -44,15 +46,15 @@ def expand_config_template(config_workspace: str):
             template_copy = template_copy.replace(f"${key}", str(value))
         # find exp name
         exp_name = find_exp_name(template_copy)
-        exp_yaml_path = os.path.join(config_workspace, f'{exp_name}.yaml')
-        exp_log_path = os.path.join(config_workspace, f'{exp_name}.out.log')
+        exp_yaml_path = os.path.join(config_workspace, f'gen_{exp_name}.yaml')
+        exp_log_path = os.path.join(config_workspace, f'gen_{exp_name}.out.log')
         with open(exp_yaml_path, 'w', encoding='utf-8') as f:
             f.write(template_copy)
         run_commands.append(f'python -u train.py --cfg "{exp_yaml_path}" > {exp_log_path} 2>&1')
 
     return run_commands
 
-def run_multiple_commands_on_gpu(command_list):
+def run_multiple_commands_on_gpu(command_list, num_workers: int):
 
     # Create a lock to control access to the commands list
     commands = [item for item in command_list]
@@ -88,8 +90,6 @@ def run_multiple_commands_on_gpu(command_list):
             # Run the command
             run_command(worker_id, cmd)
 
-    # Create 4 worker threads
-    num_workers = 4
     threads = []
     for i in range(num_workers):
         thread = threading.Thread(target=worker, args=(i,))
@@ -100,9 +100,11 @@ def run_multiple_commands_on_gpu(command_list):
     for thread in threads:
         thread.join()
 
-config_workspace = 'config/0109_batch_lr_and_schedule'
-command_list = expand_config_template(config_workspace)
-run_multiple_commands_on_gpu(command_list)
+def main(config_workspace):
+    command_list = expand_config_template(config_workspace)
+    run_multiple_commands_on_gpu(command_list, num_workers=4)
 
+if __name__ == '__main__':
+    fire.Fire(main)
 
 
