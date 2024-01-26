@@ -178,3 +178,4 @@ pyrightconfig.json
 experiment
 sam_ckpt
 dump*
+*.lock
