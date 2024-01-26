@@ -1,0 +1,14 @@
+
+
+lr:
+- 1e-5
+- 3e-5
+
+schedule:
+- linear
+- cosine
+
+optim:
+- adamw
+
+
