@@ -90,17 +90,21 @@ def run_multiple_commands_on_gpu(command_list, num_workers: int, on_status_chang
             on_status_change_wrap(cmd_id, f'ERROR')
     # Worker function
     def worker(worker_id):
-        while True:
-            # Acquire the lock to access the commands list
-            with commands_lock:
-                if not commands:
-                    # No more commands to process
-                    break
-                # Get the next command
-                cmd_tuple = commands.pop(0)
-            
-            # Run the command
-            run_command(worker_id, cmd_tuple)
+        
+        # file lock, wait if another process is running on the same GPU
+        with file_lock.FileLock(f'group_train_worker{worker_id:02d}.lock'):
+            while True:
+                # Acquire the lock to access the commands list
+                with commands_lock:
+                    if not commands:
+                        # No more commands to process
+                        print(f'Worker {worker_id:02d} has no more tasks to do')
+                        break
+                    # Get the next command
+                    cmd_tuple = commands.pop(0)
+                
+                # Run the command
+                run_command(worker_id, cmd_tuple)
 
     threads = []
     for i in range(num_workers):
@@ -145,9 +149,8 @@ def main(config_workspace):
             status[row] = s
             live.update(generate_table())
         
-        with file_lock.FileLock('group_train.lock'):
-            run_multiple_commands_on_gpu(
-                command_list, num_workers=4, on_status_change=on_status_change)
+        run_multiple_commands_on_gpu(
+            command_list, num_workers=4, on_status_change=on_status_change)
 
 if __name__ == '__main__':
     fire.Fire(main)
