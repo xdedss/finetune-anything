@@ -1,0 +1,17 @@
+
+lr:
+- 1e-5
+
+schedule:
+- cosine
+
+optim:
+- adamw
+
+voc_w:
+- 0.5
+- 2.5 # 5:1
+- 0.1 # 1:5
+
+potsdam_wrap:
+- 'top-down view of {name}'

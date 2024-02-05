@@ -5,6 +5,8 @@ from torchvision.datasets import VOCSegmentation, VisionDataset
 from torchvision.datasets.vision import StandardTransform
 import numpy as np
 import glob
+import math
+import random
 import tqdm
 
 
@@ -226,6 +228,7 @@ class TorchVOCTextSegmentationFull(VOCSegmentation):
     
     def build_index(self):
         self.index_table = [] # (original_idx, label_idx)
+        print('building dataset index')
         for original_index in range(super().__len__()):
 
             target = Image.open(self.masks[original_index])
@@ -455,4 +458,84 @@ class GeneralTextSegmentationFull(GeneralSegmentationDataset):
         # xx
         return img, target, selected_class_name
 
+
+
+
+class MixedTextSegmentation(Dataset):
+
+    def __init__(self, dataset_tuples, total_len=None, shuffle_seed=42) -> None:
+        '''
+        dataset_tuples:
+        [
+            (dataset object, weight, classname_wrap_func),
+            ...
+        ]
+        '''
+        super().__init__()
+        
+        self.datasets = [t[0] for t in dataset_tuples]
+        self.weights = np.array([t[1] for t in dataset_tuples], dtype=float)
+        self.weights = self.weights / np.sum(self.weights)        
+        self.classname_wrap_funcs = [t[2] for t in dataset_tuples]
+
+        unique_names = []
+        for dataset, weight, class_name_wrap_func in dataset_tuples:
+            if (class_name_wrap_func is None):
+                class_name_wrap_func = lambda x: x
+            for class_name in dataset.class_names:
+                wrapped_name = class_name_wrap_func(class_name)
+                if (wrapped_name not in unique_names):
+                    unique_names.append(wrapped_name)
+        self.class_names = unique_names
+
+        self.rng = random.Random(shuffle_seed)
+
+        if (total_len is None):
+            total_len = sum(len(t[0]) for t in dataset_tuples)
+
+        dataset_indices = []
+        dataset_item_indices = []
+        dataset_progress = []
+        for dataset_i, (dataset, weight) in enumerate(zip(self.datasets, self.weights)):
+            # shuffle indices inside the dataset
+            indices = list(range(len(dataset)))
+            self.rng.shuffle(indices)
+            dataset_item_indices.append(indices)
+            # append dataset indices
+            dataset_num_samples = int(math.floor(total_len * weight))
+            dataset_indices.extend([dataset_i] * dataset_num_samples)
+            # append progress for building index
+            dataset_progress.append(0)
+        
+        # extend to total_len
+        for i in range(len(dataset_indices), total_len):
+            dataset_indices.append(i % len(self.datasets))
+        
+        self.rng.shuffle(dataset_indices)
+
+        # print(dataset_indices)
+        # print(self.class_names)
+        # # xx
+
+        self.index_table = []
+        for i in range(total_len):
+
+            dataset_i = dataset_indices[i]
+            # (dataset_i,) = self.rng.choices(range(len(self.datasets)), self.weights, k=1)
+
+            # add next index
+            self.index_table.append((dataset_i, dataset_progress[dataset_i]))
+
+            # move to the next sample (circular)
+            dataset_progress[dataset_i] = (dataset_progress[dataset_i] + 1) % len(self.datasets[dataset_i])
+    
+    def __len__(self):
+        return len(self.index_table)
+
+    def __getitem__(self, index):
+        dataset_i, i = self.index_table[index]
+        wrap_func = self.classname_wrap_funcs[dataset_i]
+        img, target, selected_class_name = self.datasets[dataset_i][i]
+        selected_class_name = wrap_func(selected_class_name)
+        return img, target, selected_class_name
 

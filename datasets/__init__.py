@@ -7,9 +7,26 @@ from .semantic_seg import (
     TorchVOCTextSegmentation, 
     TorchVOCTextSegmentationFull,
     GeneralTextSegmentationFull,
+    MixedTextSegmentation,
 )
 from .transforms import get_transforms
 from torchvision.datasets import VOCSegmentation
+
+
+def mix_voc_potsdam(transform, target_transform, voc_w, voc_wrap, voc_params, potsdam_w, potsdam_wrap, potsdam_params, **kwargs):
+    dataset_tuples = [
+        (
+            TorchVOCTextSegmentationFull(**voc_params, transform=transform, target_transform=target_transform),
+            voc_w,
+            lambda a: voc_wrap.format(name=a),
+        ),
+        (
+            GeneralTextSegmentationFull(**potsdam_params, transform=transform, target_transform=target_transform),
+            potsdam_w,
+            lambda a: potsdam_wrap.format(name=a),
+        ),
+    ]
+    return MixedTextSegmentation(dataset_tuples, **kwargs)
 
 segment_datasets = {
     'base_ins': BaseInstanceDataset, 
@@ -19,6 +36,7 @@ segment_datasets = {
     'torch_voc_text': TorchVOCTextSegmentation,
     'torch_voc_text_full': TorchVOCTextSegmentationFull,
     'general_text_full': GeneralTextSegmentationFull,
+    'mix_voc_potsdam': mix_voc_potsdam,
 }
 det_dataset = {
     'base_det': BaseDetectionDataset, 

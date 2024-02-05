@@ -175,6 +175,7 @@ class TextRunner(BaseRunner):
         # train
         for iteration in range(cfg.max_iter):
             images, labels, text_array = train_iterator.get()
+            # print(text_array)
             images, labels = images.cuda(), labels.cuda().long()
             # print(images.view(-1)[500000:500020])
             # print(text_array)
