@@ -1,4 +1,5 @@
 import os
+import json
 from PIL import Image
 from torch.utils.data import Dataset
 from torchvision.datasets import VOCSegmentation, VisionDataset
@@ -8,6 +9,8 @@ import glob
 import math
 import random
 import tqdm
+
+import cv2
 
 
 class BaseSemanticDataset(VisionDataset):
@@ -459,7 +462,79 @@ class GeneralTextSegmentationFull(GeneralSegmentationDataset):
         return img, target, selected_class_name
 
 
+class StructuredTextSegmentation(Dataset):
+    
+    def __init__(
+            self, meta_json_path: str, *, 
+            transform=None, target_transform=None,
+            len_limit=None,
+        ):
+        ''' meta_json should point to image, mask and corresponding prompt '''
+        # [{"image": "path/to", "mask": "path/to", "prompt": "xxx"}, ...]
 
+        with open(meta_json_path, 'r', encoding='utf-8') as f:
+            meta = json.load(f)
+        
+        assert type(meta) == list
+
+        # read index
+        self.index_table = []
+
+        for data_spec in tqdm.tqdm(meta, desc="Building Index"):
+            image_path = data_spec['image']
+            mask_path = data_spec['mask']
+            prompt = data_spec['prompt']
+            self.index_table.append((image_path, mask_path, prompt))
+
+        # build class names
+        self.class_names = list(set(prompt for image_path, mask_path, prompt in self.index_table))
+        print(f"num classes: {len(self.class_names)}")
+        print(self.class_names)
+
+        # limit length
+        self.len_limit = len_limit
+
+        # handle transform
+        has_separate_transform = transform is not None or target_transform is not None
+
+        # for backwards-compatibility
+        self.transform = transform
+        self.target_transform = target_transform
+
+        if has_separate_transform:
+            transforms = StandardTransform(transform, target_transform)
+            
+            self.transforms = transforms
+        else:
+            self.transforms = None
+
+    def __len__(self):
+        if (self.len_limit is not None):
+            return min(self.len_limit, len(self.index_table))
+        else:
+            return len(self.index_table)
+
+    def __getitem__(self, index: int):
+        """
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: (image, target, selected_class_name) where target is the image segmentation.
+        """
+        image_path, mask_path, prompt = self.index_table[index]
+        # print(f'[Get] i={index}, returning {self.images[index]}')
+        img = Image.open(image_path).convert('RGB')
+        target = Image.open(mask_path)
+
+        selected_class_name = prompt
+
+        if self.transforms is not None:
+            img, target = self.transforms(img, target)
+        
+        target = (np.array(target) > 0).astype(np.uint8)
+
+        return img, target, selected_class_name
 
 class MixedTextSegmentation(Dataset):
 

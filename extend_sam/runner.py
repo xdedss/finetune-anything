@@ -338,7 +338,7 @@ class TextRunner(BaseRunner):
     def run_one_image(self, img_path, prompt: str):
         img_cv = cv2.imread(img_path, cv2.IMREAD_COLOR)
         img_torch = torch.from_numpy(img_cv).float() / 255.0
-        # TODO
+        # TODO run one image
 
 
 

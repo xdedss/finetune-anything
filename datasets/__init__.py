@@ -7,6 +7,7 @@ from .semantic_seg import (
     TorchVOCTextSegmentation, 
     TorchVOCTextSegmentationFull,
     GeneralTextSegmentationFull,
+    StructuredTextSegmentation,
     MixedTextSegmentation,
 )
 from .transforms import get_transforms
@@ -36,6 +37,7 @@ segment_datasets = {
     'torch_voc_text': TorchVOCTextSegmentation,
     'torch_voc_text_full': TorchVOCTextSegmentationFull,
     'general_text_full': GeneralTextSegmentationFull,
+    'structured_text': StructuredTextSegmentation,
     'mix_voc_potsdam': mix_voc_potsdam,
 }
 det_dataset = {
