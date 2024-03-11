@@ -59,7 +59,7 @@ def build_subset(subset_root, output_root):
             prompt = random.choice(building_desc[label_id])
 
             # wirte to disk
-            output_image_path = os.path.join(output_root, 'images', f'{image_id}_{label_id}.png')
+            output_image_path = os.path.join(output_root, 'images', f'{image_id}.png') # same image for different label_ids
             output_mask_path = os.path.join(output_root, 'targets', f'{image_id}_{label_id}.png')
             os.makedirs(os.path.dirname(output_image_path), exist_ok=True)
             os.makedirs(os.path.dirname(output_mask_path), exist_ok=True)
@@ -72,7 +72,19 @@ def build_subset(subset_root, output_root):
             })
         
         # altogether
-        # TODO: all labels -> just buildings
+        mask = target_np > 0
+        prompt = 'buildings'
+        output_image_path = os.path.join(output_root, 'images', f'{image_id}.png') # same image for different label_ids
+        output_mask_path = os.path.join(output_root, 'targets', f'{image_id}_all.png')
+        os.makedirs(os.path.dirname(output_image_path), exist_ok=True)
+        os.makedirs(os.path.dirname(output_mask_path), exist_ok=True)
+        cv2.imwrite(output_mask_path, mask.astype(np.uint8) * 255)
+        image.save(output_image_path)
+        res.append({
+            "image": os.path.abspath(output_image_path),
+            "mask": os.path.abspath(output_mask_path),
+            "prompt": prompt,
+        })
         
 
         # print(unique_labels)
@@ -112,8 +124,8 @@ def main(xbd_root):
     test_root = os.path.join(xbd_root, 'test')
     train_root = os.path.join(xbd_root, 'train')
 
-    build_subset(test_root, 'dataset_scripts/built/xbd/test')
-    build_subset(train_root, 'dataset_scripts/built/xbd/train')
+    build_subset(test_root, 'dataset_scripts/built/xbd_v2/test')
+    build_subset(train_root, 'dataset_scripts/built/xbd_v2/train')
 
 
 

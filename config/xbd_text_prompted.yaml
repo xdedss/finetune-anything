@@ -1,5 +1,5 @@
 train:
-  experiment_name: 'xbd_allfull_lr1e-5_linear_adamw_10k'
+  experiment_name: 'xbd_allfull_lr1e-5_linear_adamw_10k_data2_dice'
 
   # Model
   model:
@@ -17,7 +17,7 @@ train:
   dataset:
     name: 'structured_text'
     params:
-      meta_json_path: 'dataset_scripts/built/xbd/train/meta.json'
+      meta_json_path: 'dataset_scripts/built/xbd_v2/train/meta.json'
     transforms:
       resize:
         params:
@@ -32,6 +32,9 @@ train:
   # Losses
   losses:
     bce:
+      weight: 0.5
+      params:
+    dice:
       weight: 0.5
       params:
 
@@ -66,7 +69,7 @@ val:
   dataset:
     name: 'structured_text'
     params:
-      meta_json_path: 'dataset_scripts/built/xbd/test/meta.json'
+      meta_json_path: 'dataset_scripts/built/xbd_v2/test/meta.json'
     transforms:
       resize:
         params:
