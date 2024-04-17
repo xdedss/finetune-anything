@@ -4,11 +4,13 @@ from .utils import Average_Meter, Timer, print_and_save_log, mIoUOnline, Binarym
 import torch
 import cv2
 import torch.nn.functional as F
+import torchvision.transforms
 import os
 import torch.nn as nn
 
 import einops
 import numpy as np
+from PIL import Image
 
 import tqdm
 
@@ -336,9 +338,33 @@ class TextRunner(BaseRunner):
         # print(f'loss={my_loss.item()} vs {total_loss.item()}')
 
     def run_one_image(self, img_path, prompt: str):
-        img_cv = cv2.imread(img_path, cv2.IMREAD_COLOR)
-        img_torch = torch.from_numpy(img_cv).float() / 255.0
-        # TODO run one image
+
+        self.model.eval()
+
+        img = Image.open(img_path).convert('RGB')
+        transform = torchvision.transforms.Compose([
+            torchvision.transforms.ToTensor(),
+            torchvision.transforms.Resize((1024, 1024))
+        ])
+        img_torch = transform(img).cuda()
+
+        img_torch_bs1 = img_torch.unsqueeze(0)
+
+        # print(img_torch)
+        print(img_torch.shape)
+
+        masks_pred, iou_pred = self.model(img_torch_bs1, [prompt])
+
+        masks_pred = F.interpolate(masks_pred, self.original_size, mode="bilinear", align_corners=False)
+        masks_pred = masks_pred[:, 0, :, :] # we have only one output
+        
+
+        pred_vis = torch.sigmoid(masks_pred[0].detach().cpu()).numpy().astype(np.float32) * 255
+        pred_vis_bin = (torch.sigmoid(masks_pred[0].detach().cpu()).numpy() > 0.5).astype(np.float32) * 255
+        cv2.imwrite(os.path.join('.', f'one_img_pred_vis.png'), pred_vis)
+        cv2.imwrite(os.path.join('.', f'one_img_pred_vis_bin.png'), pred_vis_bin)
+        
+        
 
 
 

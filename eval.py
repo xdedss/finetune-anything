@@ -34,9 +34,13 @@ if __name__ == '__main__':
     # train_loader = DataLoader(train_dataset, batch_size=train_cfg.bs, shuffle=True, num_workers=train_cfg.num_workers,
     #                           drop_last=train_cfg.drop_last)
     train_loader = None
-    val_dataset = get_dataset(val_cfg.dataset)
-    val_loader = DataLoader(val_dataset, batch_size=val_cfg.bs, shuffle=False, num_workers=val_cfg.num_workers,
-                            drop_last=val_cfg.drop_last)
+    
+    if (args.img is not None and args.prompt is not None):
+        val_loader = None
+    else:
+        val_dataset = get_dataset(val_cfg.dataset)
+        val_loader = DataLoader(val_dataset, batch_size=val_cfg.bs, shuffle=False, num_workers=val_cfg.num_workers,
+                                drop_last=val_cfg.drop_last)
     losses = get_losses(losses=train_cfg.losses)
     # according the model name to get the adapted model
     model = get_model(model_name=train_cfg.model.sam_name, **train_cfg.model.params)
