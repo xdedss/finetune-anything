@@ -57,7 +57,7 @@ def expand_config_template(config_workspace: str):
 
     return run_commands, keys, combos
 
-def run_multiple_commands_on_gpu(command_list, num_workers: int, on_status_change=None):
+def run_multiple_commands_on_gpu(command_list, worker_ids, on_status_change=None):
 
     def on_status_change_wrap(row: int, s: str):
         if (on_status_change is not None):
@@ -107,7 +107,7 @@ def run_multiple_commands_on_gpu(command_list, num_workers: int, on_status_chang
                 run_command(worker_id, cmd_tuple)
 
     threads = []
-    for i in range(num_workers):
+    for i in worker_ids:
         thread = threading.Thread(target=worker, args=(i,))
         threads.append(thread)
         thread.start()
@@ -116,7 +116,7 @@ def run_multiple_commands_on_gpu(command_list, num_workers: int, on_status_chang
     for thread in threads:
         thread.join()
 
-def main(config_workspace):
+def main(config_workspace, worker_ids=(0, 1, 2, 3)):
     command_list, keys, combos = expand_config_template(config_workspace)
     status = ['PENDING' for _ in command_list]
 
@@ -150,7 +150,7 @@ def main(config_workspace):
             live.update(generate_table())
         
         run_multiple_commands_on_gpu(
-            command_list, num_workers=4, on_status_change=on_status_change)
+            command_list, worker_ids=worker_ids, on_status_change=on_status_change)
 
 if __name__ == '__main__':
     fire.Fire(main)
