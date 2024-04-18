@@ -49,10 +49,14 @@ class TextEncoderAdapter(BasePromptEncodeAdapter):
         if fix:
             fix_params(self.clip) # the real meat here is CLIP
 
-    def forward(self, text_array):
+    def forward(self, text_array, masks=None):
+        '''
+        text_array: list of str, len=bs
+        masks: (bs, 1, h, w) float
+        '''
 
         # dummy_box = torch.randn((1, 1, 4)).to(self.sam_prompt_encoder._get_device())
-        dummy_sparse_emb, dummy_dense_emb = self.sam_prompt_encoder(None, None, None)
+        dummy_sparse_emb, dummy_dense_emb = self.sam_prompt_encoder(None, None, masks=masks)
 
         text_emb = clip.tokenize(text_array).to(self.sam_prompt_encoder._get_device())
         text_features = self.clip.encode_text(text_emb) # bs, 512

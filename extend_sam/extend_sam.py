@@ -73,12 +73,14 @@ class TextSam(BaseExtendSam):
         # self.mask_adapter = LoraMaskDecoderAdapter(self.ori_sam, fix=fix_mask_de, rank=lora_rank)
         # fix_params_by_name(self.mask_adapter, ['output_upscaling'])
     
-    def forward(self, img, text_array):
+    def forward(self, img, text_array, masks=None):
         ''' text_array: len=batch size '''
 
         x = self.img_adapter(img)
 
-        sparse_embeddings, dense_embeddings = self.prompt_adapter(text_array)
+        sparse_embeddings, dense_embeddings = self.prompt_adapter(text_array, masks=masks)
+
+        # print('sparse', sparse_embeddings)
 
         multimask_output = False # only output 1 mask, for given text input
         low_res_masks, iou_predictions = self.mask_adapter(

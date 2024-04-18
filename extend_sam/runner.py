@@ -176,16 +176,19 @@ class TextRunner(BaseRunner):
             writer = SummaryWriter(tensorboard_dir)
         # train
         for iteration in range(cfg.max_iter):
-            images, labels, text_array = train_iterator.get()
+            batch_data = train_iterator.get()
+            images, labels, text_array = batch_data[:3]
             # print(text_array)
             images, labels = images.cuda(), labels.cuda().long()
-            # print(images.view(-1)[500000:500020])
-            # print(text_array)
-            # xx
+            
+            labels_mask_prompt = None
+            if (len(batch_data) > 3):
+                labels_mask_prompt = batch_data[3]
+                labels_mask_prompt = labels_mask_prompt.cuda().float()
 
             # print(images.shape, labels.shape)
             bs = images.shape[0]
-            masks_pred, iou_pred = self.model(images, text_array)
+            masks_pred, iou_pred = self.model(images, text_array, labels_mask_prompt)
             masks_pred = F.interpolate(masks_pred, self.original_size, mode="bilinear", align_corners=False)
             masks_pred = masks_pred[:, 0, :, :] # we have only one output
             
