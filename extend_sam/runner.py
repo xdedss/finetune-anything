@@ -185,6 +185,7 @@ class TextRunner(BaseRunner):
             if (len(batch_data) > 3):
                 labels_mask_prompt = batch_data[3]
                 labels_mask_prompt = labels_mask_prompt.cuda().float()
+                labels_mask_prompt = labels_mask_prompt.unsqueeze(1) # bs h w -> bs 1 h w
 
             # print(images.shape, labels.shape)
             bs = images.shape[0]

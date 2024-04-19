@@ -467,7 +467,7 @@ class StructuredTextSegmentation(Dataset):
     def __init__(
             self, meta_json_path: str, *, 
             transform=None, target_transform=None,
-            len_limit=None,
+            len_limit=None, use_mask_prompt=False,
         ):
         ''' meta_json should point to image, mask and corresponding prompt '''
         # [{"image": "path/to", "mask": "path/to", "prompt": "xxx"}, ...]
@@ -480,14 +480,17 @@ class StructuredTextSegmentation(Dataset):
         # read index
         self.index_table = []
 
+        self.use_mask_prompt = use_mask_prompt
+
         for data_spec in tqdm.tqdm(meta, desc="Building Index"):
             image_path = data_spec['image']
             mask_path = data_spec['mask']
             prompt = data_spec['prompt']
-            self.index_table.append((image_path, mask_path, prompt))
+            mask_prompt_path = data_spec.get('mask_prompt', None)
+            self.index_table.append((image_path, mask_path, prompt, mask_prompt_path))
 
         # build class names
-        self.class_names = list(set(prompt for image_path, mask_path, prompt in self.index_table))
+        self.class_names = list(set(prompt for image_path, mask_path, prompt, mask_prompt_path in self.index_table))
         print(f"num classes: {len(self.class_names)}")
         print(self.class_names)
 
@@ -522,19 +525,29 @@ class StructuredTextSegmentation(Dataset):
         Returns:
             tuple: (image, target, selected_class_name) where target is the image segmentation.
         """
-        image_path, mask_path, prompt = self.index_table[index]
+        image_path, mask_path, prompt, mask_prompt_path = self.index_table[index]
         # print(f'[Get] i={index}, returning {self.images[index]}')
         img = Image.open(image_path).convert('RGB')
         target = Image.open(mask_path)
 
         selected_class_name = prompt
 
+        # IMPORTANT: no random transform if there are target_mask_prompt
         if self.transforms is not None:
             img, target = self.transforms(img, target)
         
         target = (np.array(target) > 0).astype(np.uint8)
+        
+        if (self.use_mask_prompt):
+            target_mask_prompt = np.zeros_like(target) # use zeros as empty mask
+            if mask_prompt_path is not None:
+                target_mask_prompt = Image.open(mask_prompt_path)
+                target_mask_prompt = self.transforms.target_transform(target_mask_prompt)
+                target_mask_prompt = (np.array(target_mask_prompt) > 0).astype(np.uint8)
 
-        return img, target, selected_class_name
+            return img, target, selected_class_name, target_mask_prompt
+        else:
+            return img, target, selected_class_name
 
 class MixedTextSegmentation(Dataset):
 
@@ -610,7 +623,7 @@ class MixedTextSegmentation(Dataset):
     def __getitem__(self, index):
         dataset_i, i = self.index_table[index]
         wrap_func = self.classname_wrap_funcs[dataset_i]
-        img, target, selected_class_name = self.datasets[dataset_i][i]
+        img, target, selected_class_name, mask_prompt = self.datasets[dataset_i][i]
         selected_class_name = wrap_func(selected_class_name)
-        return img, target, selected_class_name
+        return img, target, selected_class_name, mask_prompt
 
