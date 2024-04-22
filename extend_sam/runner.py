@@ -264,12 +264,21 @@ class TextRunner(BaseRunner):
         i = 0
         
         with torch.no_grad():
-            for index, (images, labels, text_array) in enumerate(pbar):
+            for index, batch_data in enumerate(pbar):
+                
+                images, labels, text_array = batch_data[:3]
                 images = images.cuda() # bs 3 h w
                 labels = labels.cuda() # bs h w
+                
+                labels_mask_prompt = None
+                if (len(batch_data) > 3):
+                    labels_mask_prompt = batch_data[3]
+                    labels_mask_prompt = labels_mask_prompt.cuda().float()
+                    labels_mask_prompt = labels_mask_prompt.unsqueeze(1) # bs h w -> bs 1 h w
+
                 # print(images.view(-1)[500000:500020])
                 # print(text_array)
-                masks_pred, iou_pred = self.model(images, text_array)
+                masks_pred, iou_pred = self.model(images, text_array, labels_mask_prompt)
                 masks_pred = masks_pred[:, 0, :, :] # we have only one output
                 predictions = (masks_pred > 0)
                 for batch_index in range(images.shape[0]):

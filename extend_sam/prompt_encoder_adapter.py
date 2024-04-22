@@ -55,12 +55,14 @@ class TextEncoderAdapter(BasePromptEncodeAdapter):
         masks: (bs, 1, h, w) float
         '''
 
+        bs = len(text_array)
+
         # dummy_box = torch.randn((1, 1, 4)).to(self.sam_prompt_encoder._get_device())
         dummy_sparse_emb, dummy_dense_emb = self.sam_prompt_encoder(None, None, masks=masks)
 
         # if sam_prompt_encoder did not recognize batch size automatically, we repeate it to bs
         if dummy_sparse_emb.shape[0] == 1:
-            dummy_sparse_emb = einops.repeat(dummy_sparse_emb, '1 n d -> b n d', b=text_proj.shape[0])
+            dummy_sparse_emb = einops.repeat(dummy_sparse_emb, '1 n d -> b n d', b=bs)
 
         text_emb = clip.tokenize(text_array).to(self.sam_prompt_encoder._get_device())
         text_features = self.clip.encode_text(text_emb) # bs, 512

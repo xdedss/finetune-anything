@@ -486,7 +486,7 @@ class StructuredTextSegmentation(Dataset):
             image_path = data_spec['image']
             mask_path = data_spec['mask']
             prompt = data_spec['prompt']
-            mask_prompt_path = data_spec.get('mask_prompt', None)
+            mask_prompt_path = data_spec.get('prompt_mask', None)
             self.index_table.append((image_path, mask_path, prompt, mask_prompt_path))
 
         # build class names
