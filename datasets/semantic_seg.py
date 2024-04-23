@@ -482,12 +482,23 @@ class StructuredTextSegmentation(Dataset):
 
         self.use_mask_prompt = use_mask_prompt
 
+        has_bad_file = False
+
         for data_spec in tqdm.tqdm(meta, desc="Building Index"):
             image_path = data_spec['image']
             mask_path = data_spec['mask']
             prompt = data_spec['prompt']
             mask_prompt_path = data_spec.get('prompt_mask', None)
             self.index_table.append((image_path, mask_path, prompt, mask_prompt_path))
+
+            # check existence
+            for file_path_to_check in [image_path, mask_path, mask_prompt_path]:
+                if (not os.path.isfile(file_path_to_check)):
+                    print(f"file not found: {file_path_to_check}")
+                    has_bad_file = True
+
+        if (has_bad_file):
+            raise ValueError()
 
         # build class names
         self.class_names = list(set(prompt for image_path, mask_path, prompt, mask_prompt_path in self.index_table))
