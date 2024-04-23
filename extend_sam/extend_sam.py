@@ -80,6 +80,7 @@ class TextSam(BaseExtendSam):
         
         # print('got mask:', masks)
         # print('mask shape:', masks.shape)
+        # print('img shape', img.shape)
         # xxx
 
         sparse_embeddings, dense_embeddings = self.prompt_adapter(text_array, masks=masks)

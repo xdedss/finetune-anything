@@ -129,17 +129,19 @@ class MaskDecoder(nn.Module):
 
         # Expand per-image data in batch direction to be per-mask
 
-        if (image_embeddings.size(0) == 1):
-            # this is the default way to handle this, when we have one image and multiple sets of prompts
-            src = torch.repeat_interleave(image_embeddings, tokens.shape[0], dim=0)
-            src = src + dense_prompt_embeddings
-            pos_src = torch.repeat_interleave(image_pe, tokens.shape[0], dim=0)
-        else:
-            # sometimes we also want to have multiple images, each corresponding to one set of prompt
-            # then there is no need to repeat image
-            assert image_embeddings.size(0) == sparse_prompt_embeddings.size(0)
-            src = image_embeddings
-            pos_src = image_pe
+        # if (image_embeddings.size(0) == 1):
+        #     # this is the default way to handle this, when we have one image and multiple sets of prompts
+        #     src = torch.repeat_interleave(image_embeddings, tokens.shape[0], dim=0)
+        #     print(src.shape, dense_prompt_embeddings.shape)
+        #     src = src + dense_prompt_embeddings
+        #     pos_src = torch.repeat_interleave(image_pe, tokens.shape[0], dim=0)
+        # else:
+
+        # 0423: we always require per image prompt
+        assert image_embeddings.size(0) == sparse_prompt_embeddings.size(0)
+        src = image_embeddings
+        src = src + torch.nn.functional.interpolate(dense_prompt_embeddings, size=src.shape[-2:])
+        pos_src = image_pe
 
         b, c, h, w = src.shape
         
