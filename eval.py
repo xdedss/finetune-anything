@@ -39,7 +39,7 @@ if __name__ == '__main__':
         val_loader = None
     else:
         val_dataset = get_dataset(val_cfg.dataset)
-        val_loader = DataLoader(val_dataset, batch_size=val_cfg.bs, shuffle=False, num_workers=val_cfg.num_workers,
+        val_loader = DataLoader(val_dataset, batch_size=2, shuffle=False, num_workers=0,
                                 drop_last=val_cfg.drop_last)
     losses = get_losses(losses=train_cfg.losses)
     # according the model name to get the adapted model
