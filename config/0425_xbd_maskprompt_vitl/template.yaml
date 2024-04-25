@@ -1,5 +1,5 @@
 train:
-  experiment_name: 'xbd_vith_allfull_textprompt_lr$lr_linear_adamw_10k_data2'
+  experiment_name: 'xbd_vitl_allfull_textprompt_lr$lr_linear_adamw_10k_data2'
 
   # Model
   model:
@@ -10,8 +10,8 @@ train:
       prompt_en_type: 'full'
       mask_de_type: 'full'
       enhance_proj: False
-      ckpt_path: 'sam_ckpt/sam_vit_h_4b8939.pth'
-      model_type: 'vit_h'    # type should be in [vit_h, vit_b, vit_l, default]
+      ckpt_path: 'sam_ckpt/sam_vit_l_0b3195.pth'
+      model_type: 'vit_l'    # type should be in [vit_h, vit_b, vit_l, default]
 
   # Dataset
   dataset:
