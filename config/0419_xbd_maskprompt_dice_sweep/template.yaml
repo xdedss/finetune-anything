@@ -1,0 +1,93 @@
+train:
+  experiment_name: 'xbd_allfull_textprompt_lr1e-5_linear_adamw_10k_data2_dice$dice_w_$bce_w'
+
+  # Model
+  model:
+    sam_name: 'text_sam'
+    params:
+      # Fix the a part of parameters in SAM
+      img_en_type: 'full'
+      prompt_en_type: 'full'
+      mask_de_type: 'full'
+      enhance_proj: False
+      ckpt_path: 'sam_ckpt/sam_vit_b_01ec64.pth'
+      model_type: 'vit_b'    # type should be in [vit_h, vit_b, vit_l, default]
+
+  # Dataset
+  dataset:
+    name: 'structured_text'
+    params:
+      meta_json_path: 'dataset_scripts/built/xbd_pre_prompt/train/meta.json'
+      use_mask_prompt: True
+    transforms:
+      resize:
+        params:
+          size: [1024, 1024]
+      to_tensor:
+        params: ~
+    target_transforms:
+      resize:
+        params:
+          size: [1024, 1024]
+
+  # Losses
+  losses:
+    bce:
+      weight: $bce_w
+      params:
+    dice:
+      weight: $dice_w
+      params:
+
+  # Optimizer
+  opt_params:
+    lr_default:  1e-5
+    wd_default: 0.0
+    momentum: 0.9
+    lr_list:  [  ]
+    group_keys: [  ] # the empty string matches everything
+    wd_list:  [  ]
+  opt_name: 'adamw' # 'sgd'
+  scheduler_name: 'linear'
+
+  # Runner
+  max_iter: 10000
+  log_iter: 20
+  eval_iter: 200
+  runner_name: 'text_runner'
+  # Dataloader
+  bs: 2 # 8
+  num_workers: 2
+  drop_last: True
+  # Logger
+  use_tensorboard: True
+  tensorboard_folder: './experiment/tensorboard'
+  log_folder: './experiment/log'
+  model_folder: './experiment/model'
+
+val:
+  # Dataset
+  dataset:
+    name: 'structured_text'
+    params:
+      meta_json_path: 'dataset_scripts/built/xbd_pre_prompt/test/meta.json'
+      use_mask_prompt: True
+    transforms:
+      resize:
+        params:
+          size: [1024, 1024]
+      to_tensor:
+        params: ~
+    target_transforms:
+      resize:
+        params:
+          size: [1024, 1024]
+
+  bs: 2
+  num_workers: 2
+  drop_last: True
+
+
+test:
+  need_test: False
+
