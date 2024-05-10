@@ -54,6 +54,7 @@ train:
   log_iter: 20
   eval_iter: 200
   runner_name: 'text_runner'
+  grad_accum_steps: 8
   # Dataloader
   bs: 2 # 8
   num_workers: 2

@@ -175,6 +175,7 @@ class TextRunner(BaseRunner):
             from torch.utils.tensorboard import SummaryWriter
             writer = SummaryWriter(tensorboard_dir)
         # train
+        grad_accum_steps = cfg.get('grad_accum_steps', 1)
         for iteration in range(cfg.max_iter):
             batch_data = train_iterator.get()
             images, labels, text_array = batch_data[:3]
@@ -209,6 +210,7 @@ class TextRunner(BaseRunner):
             loss_dict = {}
             self._compute_loss(total_loss, loss_dict, masks_pred, labels, cfg)
             self.optimizer.zero_grad()
+            total_loss = total_loss / grad_accum_steps # normalize if we have grad accumulation
             total_loss.backward()
 
             # # see where the grad goes
@@ -217,7 +219,9 @@ class TextRunner(BaseRunner):
             #         print(f"Parameter: {name}, Gradient Norm: {param.grad.norm().item()}")
             # see
 
-            self.optimizer.step()
+            # only step if we are at the right iteration
+            if ((iteration + 1) % grad_accum_steps == 0):
+                self.optimizer.step()
             self.scheduler.step()
             loss_dict['total_loss'] = total_loss.item()
             train_meter.add(loss_dict)
