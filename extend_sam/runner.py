@@ -300,18 +300,20 @@ class TextRunner(BaseRunner):
 
                 if (dump_dir is not None):
                     os.makedirs(dump_dir, exist_ok=True)
-                    
-                    img_vis = einops.rearrange(images, 'bs c h w -> bs h w c')[0].detach().cpu().numpy().astype(np.float32) * 255
-                    img_vis = cv2.cvtColor(img_vis, cv2.COLOR_RGB2BGR)
-                    label_vis = labels[0].detach().cpu().numpy().astype(np.uint8) * 255
-                    pred_vis = torch.sigmoid(masks_pred[0].detach().cpu()).numpy().astype(np.float32) * 255
-                    pred_vis_bin = (torch.sigmoid(masks_pred[0].detach().cpu()).numpy() > 0.5).astype(np.float32) * 255
-                    cv2.imwrite(os.path.join(dump_dir, f'{index:04d}_img_vis.png'), img_vis)
-                    cv2.imwrite(os.path.join(dump_dir, f'{index:04d}_label_vis.png'), label_vis)
-                    cv2.imwrite(os.path.join(dump_dir, f'{index:04d}_pred_vis.png'), pred_vis)
-                    cv2.imwrite(os.path.join(dump_dir, f'{index:04d}_pred_vis_bin.png'), pred_vis_bin)
-                    with open(os.path.join(dump_dir, f'{index:04d}_text.txt'), 'w') as f:
-                        f.write(text_array[0])
+
+                    for batch_index in range(images.shape[0]):
+                        
+                        img_vis = einops.rearrange(images, 'bs c h w -> bs h w c')[batch_index].detach().cpu().numpy().astype(np.float32) * 255
+                        img_vis = cv2.cvtColor(img_vis, cv2.COLOR_RGB2BGR)
+                        label_vis = labels[batch_index].detach().cpu().numpy().astype(np.uint8) * 255
+                        pred_vis = torch.sigmoid(masks_pred[batch_index].detach().cpu()).numpy().astype(np.float32) * 255
+                        pred_vis_bin = (torch.sigmoid(masks_pred[batch_index].detach().cpu()).numpy() > 0.5).astype(np.float32) * 255
+                        cv2.imwrite(os.path.join(dump_dir, f'{index:04d}_{batch_index}_img_vis.png'), img_vis)
+                        cv2.imwrite(os.path.join(dump_dir, f'{index:04d}_{batch_index}_label_vis.png'), label_vis)
+                        cv2.imwrite(os.path.join(dump_dir, f'{index:04d}_{batch_index}_pred_vis.png'), pred_vis)
+                        cv2.imwrite(os.path.join(dump_dir, f'{index:04d}_{batch_index}_pred_vis_bin.png'), pred_vis_bin)
+                        with open(os.path.join(dump_dir, f'{index:04d}_{batch_index}_text.txt'), 'w') as f:
+                            f.write(text_array[0])
 
                     # import numpy as np
                     # print(f'{text_array[batch_index]}, TP: {np.sum(pred_mask * gt_mask)}, pred {np.sum(pred_mask)}, gt {np.sum(gt_mask)}')
