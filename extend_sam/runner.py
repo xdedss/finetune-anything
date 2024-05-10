@@ -313,7 +313,7 @@ class TextRunner(BaseRunner):
                         cv2.imwrite(os.path.join(dump_dir, f'{index:04d}_{batch_index}_pred_vis.png'), pred_vis)
                         cv2.imwrite(os.path.join(dump_dir, f'{index:04d}_{batch_index}_pred_vis_bin.png'), pred_vis_bin)
                         with open(os.path.join(dump_dir, f'{index:04d}_{batch_index}_text.txt'), 'w') as f:
-                            f.write(text_array[0])
+                            f.write(text_array[batch_index])
 
                     # import numpy as np
                     # print(f'{text_array[batch_index]}, TP: {np.sum(pred_mask * gt_mask)}, pred {np.sum(pred_mask)}, gt {np.sum(gt_mask)}')
