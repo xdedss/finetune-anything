@@ -256,7 +256,7 @@ class TextRunner(BaseRunner):
     def test(self):
         pass
 
-    def _eval(self, dump_dir=None):
+    def _eval(self, dump_dir=None, return_recall=False):
         self.model.eval()
         self.eval_timer.start()
         class_names = self.val_loader.dataset.class_names
@@ -324,9 +324,19 @@ class TextRunner(BaseRunner):
 
         self.model.train()
 
-        total_mIoU, _ = eval_metric.get(clear=True)
-        per_class_mIoU = [eval_metric_for_each_class[class_name].get(clear=True)[0] for class_name in class_names]
-        return total_mIoU, per_class_mIoU
+        total_mIoU, _ = eval_metric.get(clear=False)
+        total_recall, _ = eval_metric.get_recall(clear=False)
+        per_class_mIoU = [eval_metric_for_each_class[class_name].get(clear=False)[0] for class_name in class_names]
+        per_class_recall = [eval_metric_for_each_class[class_name].get_recall(clear=False)[0] for class_name in class_names]
+        
+        eval_metric.clear()
+        for k in eval_metric_for_each_class:
+            eval_metric_for_each_class[k].clear()
+        
+        if (return_recall):
+            return total_mIoU, per_class_mIoU, total_recall, per_class_recall
+        else:
+            return total_mIoU, per_class_mIoU
 
     def _compute_loss(self, total_loss, loss_dict, mask_pred, labels, cfg):
         """

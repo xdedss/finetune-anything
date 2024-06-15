@@ -167,6 +167,28 @@ class BinarymIoUOnline:
         else:
             return mIoU, mIoU_foreground
 
+    def get_recall(self, detail=False, clear=True):
+        recall_dic = {}
+        recall_list = []
+
+        for i in range(self.class_num):
+            recall = self.TP[i] / (self.T[i] + 1e-10) * 100
+
+            recall_dic[self.class_names[i]] = recall
+
+            recall_list.append(recall)
+
+        mrecall = np.mean(np.asarray(recall_list))
+        mrecall_foreground = np.mean(np.asarray(recall_list)[1:])
+
+        if clear:
+            self.clear()
+
+        if detail:
+            return mrecall, mrecall_foreground, recall_dic
+        else:
+            return mrecall, mrecall_foreground
+    
     def clear(self):
         self.TP = []
         self.P = []

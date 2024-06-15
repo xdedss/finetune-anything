@@ -493,6 +493,9 @@ class StructuredTextSegmentation(Dataset):
 
             # check existence
             for file_path_to_check in [image_path, mask_path, mask_prompt_path]:
+                if file_path_to_check is None:
+                    # don't check
+                    continue
                 if (not os.path.isfile(file_path_to_check)):
                     print(f"file not found: {file_path_to_check}")
                     has_bad_file = True
@@ -502,6 +505,8 @@ class StructuredTextSegmentation(Dataset):
 
         # build class names
         self.class_names = list(set(prompt for image_path, mask_path, prompt, mask_prompt_path in self.index_table))
+        # sort by dataset order
+        self.class_names.sort(key=lambda x: PREDEFINED_ORDERS.get(x, x))
         print(f"num classes: {len(self.class_names)}")
         print(self.class_names)
 
