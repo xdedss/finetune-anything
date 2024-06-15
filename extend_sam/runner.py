@@ -209,7 +209,6 @@ class TextRunner(BaseRunner):
             total_loss = torch.zeros(1).cuda()
             loss_dict = {}
             self._compute_loss(total_loss, loss_dict, masks_pred, labels, cfg)
-            self.optimizer.zero_grad()
             total_loss = total_loss / grad_accum_steps # normalize if we have grad accumulation
             total_loss.backward()
 
@@ -222,6 +221,8 @@ class TextRunner(BaseRunner):
             # only step if we are at the right iteration
             if ((iteration + 1) % grad_accum_steps == 0):
                 self.optimizer.step()
+                self.optimizer.zero_grad()
+
             self.scheduler.step()
             loss_dict['total_loss'] = total_loss.item()
             train_meter.add(loss_dict)
