@@ -2,6 +2,8 @@ import os
 import json
 from PIL import Image
 from torch.utils.data import Dataset
+import torchvision.transforms as T
+import torchvision.transforms.functional
 from torchvision.datasets import VOCSegmentation, VisionDataset
 from torchvision.datasets.vision import StandardTransform
 import numpy as np
@@ -461,6 +463,53 @@ class GeneralTextSegmentationFull(GeneralSegmentationDataset):
         # xx
         return img, target, selected_class_name
 
+PREDEFINED_ORDERS = {
+    # rescuenet
+    'Water': '__rescuenet_001',
+    'Building No Damage': '__rescuenet_002',
+    'Building Minor Damage': '__rescuenet_003',
+    'Building Major Damage': '__rescuenet_004',
+    'Building Total Destruction': '__rescuenet_005',
+    'Road-Clear': '__rescuenet_006',
+    'Road-Blocked': '__rescuenet_007',
+    'Vehicle': '__rescuenet_008',
+    'Tree': '__rescuenet_009',
+    'Pool': '__rescuenet_010',
+    # xbd
+    'buildings in good shape': '__xbd_001',
+    'buildings with slight damage': '__xbd_002',
+    'buildings that are severely damaged': '__xbd_003',
+    'buildings that are completely destroyed': '__xbd_004',
+}
+
+
+class RandomAug():
+
+    def __init__(self, final_size, scale_range=(0.08, 1), ratio_range=(0.8, 1.2)):
+        self.crop_state = None
+        self.flip_v = False
+        self.flip_h = False
+        self.final_size = final_size
+        self.scale_range = scale_range
+        self.ratio_range = ratio_range
+    
+    def update_random_state(self, img):
+        self.crop_state = T.RandomResizedCrop.get_params(img, self.scale_range, self.ratio_range)
+        self.flip_v = random.random() < 0.5
+        self.flip_h = random.random() < 0.5
+    
+    def __call__(self, *inputs):
+        res = []
+        for img in inputs:
+            i, j, h, w = self.crop_state
+            if (self.flip_h):
+                img = torchvision.transforms.functional.hflip(img)
+            if (self.flip_v):
+                img = torchvision.transforms.functional.vflip(img)
+            img = torchvision.transforms.functional.resized_crop(img, i, j, h, w, self.final_size)
+            res.append(img)
+        return res
+
 
 class StructuredTextSegmentation(Dataset):
     
@@ -468,6 +517,7 @@ class StructuredTextSegmentation(Dataset):
             self, meta_json_path: str, *, 
             transform=None, target_transform=None,
             len_limit=None, use_mask_prompt=False,
+            aug_params=None,
         ):
         ''' meta_json should point to image, mask and corresponding prompt '''
         # [{"image": "path/to", "mask": "path/to", "prompt": "xxx"}, ...]
@@ -481,6 +531,9 @@ class StructuredTextSegmentation(Dataset):
         self.index_table = []
 
         self.use_mask_prompt = use_mask_prompt
+        self.use_aug = aug_params is not None
+        if (self.use_aug):
+            self.aug = RandomAug(**aug_params)
 
         has_bad_file = False
 
@@ -543,24 +596,42 @@ class StructuredTextSegmentation(Dataset):
         """
         image_path, mask_path, prompt, mask_prompt_path = self.index_table[index]
         # print(f'[Get] i={index}, returning {self.images[index]}')
+
+        # ## 1. read everything 
         img = Image.open(image_path).convert('RGB')
         target = Image.open(mask_path)
-
         selected_class_name = prompt
 
+        if (self.use_mask_prompt):
+            target_mask_prompt = Image.new("L", target.size, 0) # use zeros as empty mask
+            if mask_prompt_path is not None:
+                # handles the case where you enable use_mask_prompt
+                # but some samples do not have a mask prompt
+                target_mask_prompt = Image.open(mask_prompt_path)
+
+        # ## 2. apply aug if enabled
+        if (self.use_aug):
+            self.aug.update_random_state(img)
+            img, target = self.aug(img, target)
+
+            if (self.use_mask_prompt):
+                target_mask_prompt = self.aug(target_mask_prompt)
+
+        # ## 3. general transforms defined in yaml
         # IMPORTANT: no random transform if there are target_mask_prompt
         if self.transforms is not None:
             img, target = self.transforms(img, target)
+            if (self.use_mask_prompt):
+                target_mask_prompt = self.transforms.target_transform(target_mask_prompt)
         
+        # convert {0, 255} to {0, 1}
         target = (np.array(target) > 0).astype(np.uint8)
+        if (self.use_mask_prompt):
+            target_mask_prompt = (np.array(target_mask_prompt) > 0).astype(np.uint8)
         
         if (self.use_mask_prompt):
-            target_mask_prompt = np.zeros_like(target) # use zeros as empty mask
-            if mask_prompt_path is not None:
-                target_mask_prompt = Image.open(mask_prompt_path)
-                target_mask_prompt = self.transforms.target_transform(target_mask_prompt)
-                target_mask_prompt = (np.array(target_mask_prompt) > 0).astype(np.uint8)
-
+            # if the data tuple has 4 elements, the runner will automatically take the 4th as target_mask_prompt
+            # otherwise the runner will pass target_mask_prompt = None to the model
             return img, target, selected_class_name, target_mask_prompt
         else:
             return img, target, selected_class_name

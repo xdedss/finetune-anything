@@ -1,5 +1,5 @@
 train:
-  experiment_name: 'rescuenet_allfull_lr1e-5_linear_adamw_10k_data2_dice'
+  experiment_name: 'rescuenet_allfull_lr1e-5_linear_adamw_10k_data2_dice_aug'
 
   # Model
   model:
@@ -18,7 +18,10 @@ train:
     name: 'structured_text'
     params:
       meta_json_path: 'dataset_scripts/built/rescuenet_v2/train/meta.json'
+      aug_params:
+        final_size: [1024, 1024]
     transforms:
+      # IMPORTANT: no random transform if there are target_mask_prompt
       resize:
         params:
           size: [1024, 1024]
@@ -56,7 +59,7 @@ train:
   runner_name: 'text_runner'
   # Dataloader
   bs: 2 # 8
-  num_workers: 2
+  num_workers: 1
   drop_last: True
   # Logger
   use_tensorboard: True
