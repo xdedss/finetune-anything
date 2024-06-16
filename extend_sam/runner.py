@@ -45,7 +45,7 @@ class BaseRunner():
     def train(self, cfg):
         raise NotImplementedError()
         
-    def _eval(self):
+    def _eval(self, cfg):
         raise NotImplementedError()
 
 class SemRunner(BaseRunner):
@@ -94,7 +94,7 @@ class SemRunner(BaseRunner):
                           writer=writer, timer=self.train_timer)
             # eval
             if (iteration + 1) % cfg.eval_iter == 0:
-                mIoU, _ = self._eval()
+                mIoU, _ = self._eval(cfg)
                 if best_valid_mIoU == -1 or best_valid_mIoU < mIoU:
                     best_valid_mIoU = mIoU
                     save_model(self.model, model_path, parallel=self.the_number_of_gpu > 1)
@@ -110,7 +110,7 @@ class SemRunner(BaseRunner):
     def test(self):
         pass
 
-    def _eval(self):
+    def _eval(self, cfg):
         self.model.eval()
         self.eval_timer.start()
         class_names = self.val_loader.dataset.class_names
@@ -240,7 +240,7 @@ class TextRunner(BaseRunner):
                 print_and_save_log("saved model in {model_path}".format(model_path=model_path_current), path=log_path)
 
                 # eval
-                mIoU, _ = self._eval()
+                mIoU, _ = self._eval(cfg)
 
                 if best_valid_mIoU == -1 or best_valid_mIoU < mIoU:
                     best_valid_mIoU = mIoU
@@ -257,7 +257,7 @@ class TextRunner(BaseRunner):
     def test(self):
         pass
 
-    def _eval(self, dump_dir=None, return_recall=False):
+    def _eval(self, cfg, dump_dir=None, return_recall=False):
         self.model.eval()
         self.eval_timer.start()
         class_names = self.val_loader.dataset.class_names
@@ -267,6 +267,7 @@ class TextRunner(BaseRunner):
         pbar = tqdm.tqdm(self.val_loader)
 
         i = 0
+        eval_loss_meter = Average_Meter(list(self.losses.keys()) + ['total_loss'])
         
         with torch.no_grad():
             for index, batch_data in enumerate(pbar):
@@ -284,8 +285,18 @@ class TextRunner(BaseRunner):
                 # print(images.view(-1)[500000:500020])
                 # print(text_array)
                 masks_pred, iou_pred = self.model(images, text_array, labels_mask_prompt)
+                masks_pred_large = F.interpolate(masks_pred, self.original_size, mode="bilinear", align_corners=False)
                 masks_pred = masks_pred[:, 0, :, :] # we have only one output
+                masks_pred_large = masks_pred_large[:, 0, :, :]
                 predictions = (masks_pred > 0)
+
+                total_loss = torch.zeros(1).cuda()
+                loss_dict = {}
+                self._compute_loss(total_loss, loss_dict, masks_pred_large, labels, cfg)
+
+                loss_dict['total_loss'] = total_loss.item()
+                eval_loss_meter.add(loss_dict)
+
                 for batch_index in range(images.shape[0]):
                     pred_mask = get_numpy_from_tensor(predictions[batch_index])
                     gt_mask = get_numpy_from_tensor(labels[batch_index].squeeze(0))
@@ -333,6 +344,8 @@ class TextRunner(BaseRunner):
         eval_metric.clear()
         for k in eval_metric_for_each_class:
             eval_metric_for_each_class[k].clear()
+        
+        print(eval_loss_meter.get(clear=True))
         
         if (return_recall):
             return total_mIoU, per_class_mIoU, total_recall, per_class_recall

@@ -55,5 +55,5 @@ if __name__ == '__main__':
     if (args.img is not None and args.prompt is not None):
         runner.run_one_image(args.img, args.prompt)
     else:
-        res = runner._eval(dump_dir=args.dump_path, return_recall=True)
+        res = runner._eval(train_cfg, dump_dir=args.dump_path, return_recall=True)
         print(res)
